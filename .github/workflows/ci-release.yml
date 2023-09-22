@@ -1,0 +1,167 @@
+name: Release project
+
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-hash-cache:
+    runs-on: ubuntu-latest
+    outputs:
+      dds_hash: ${{ steps.dds_commit.outputs.hash }}
+      windows_cached: ${{ steps.check_cache.outputs.windows }}
+      mac_cached: ${{ steps.check_cache.outputs.mac }}
+      linux_cached: ${{ steps.check_cache.outputs.linux }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - id: dds_commit
+        run: cd dds && git log --pretty=format:'hash=%h' >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v3
+        with:
+          path: win-lib/**
+          key: windows-${{ steps.dds_commit.outputs.hash }}
+      - uses: actions/cache@v3
+        with:
+          path: mac-lib/**
+          key: mac-${{ steps.dds_commit.outputs.hash }}
+      - uses: actions/cache@v3
+        with:
+          path: linux-lib/**
+          key: linux-${{ steps.dds_commit.outputs.hash }}
+      - id: check_cache
+        run: |
+          (echo -n 'mac=' && [ -f 'mac-lib/libdds_intel.dylib' ] && [ -f 'mac-lib/libdds_arm.dylib' ] && echo 'True' || echo 'False') >> "$GITHUB_OUTPUT" &&
+            (echo -n 'linux=' && [ -f 'linux-lib/libdds.so' ] && echo 'True' || echo 'False') >> "$GITHUB_OUTPUT" &&
+            (echo -n 'windows=' && [ -f 'win-lib/dds.dll' ] && echo 'True' || echo 'False') >> "$GITHUB_OUTPUT"
+  build-windows:
+    runs-on: windows-2019
+    needs: check-hash-cache
+    if: ${{ needs.check-hash-cache.outputs.windows_cached == 'False' }}
+    name: windows-x86_64
+    steps:
+      - uses: actions/cache@v3
+        with:
+          path: win-lib/**
+          key: windows-${{ needs.check-hash-cache.outputs.dds_hash }}
+          enableCrossOsArchive: true
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install tools
+        uses: crazy-max/ghaction-chocolatey@v3
+        with:
+          args: install make mingw
+      - name: Build Windows Lib
+        run: |
+          mkdir win-lib -Force && cd dds/src && git apply ../../dds.diff &&
+            make -f Makefiles/Makefile_mingw THREAD_LINK= THREADING=-DDDS_THREADS_STL &&
+            Copy-Item -Force dds.dll ../../win-lib/
+  build-mac:
+    runs-on: macos-11
+    needs: check-hash-cache
+    if: ${{ needs.check-hash-cache.outputs.mac_cached == 'False' }}
+    name: mac-x86_64
+    steps:
+      - uses: actions/cache@v3
+        with:
+          path: mac-lib/**
+          key: mac-${{ needs.check-hash-cache.outputs.dds_hash }}
+          enableCrossOsArchive: true
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build Mac lib
+        run: |
+          mkdir -p mac-lib && cd dds/src && git apply ../../dds.diff &&
+            make -f Makefiles/Makefile_Mac_clang_shared THREAD_LINK= THREADING=-DDDS_THREADS_STL &&
+            cp libdds.dylib ../../mac-lib/libdds_intel.dylib &&
+            make -f Makefiles/Makefile_Mac_clang_shared clean &&
+            make -f Makefiles/Makefile_Mac_clang_shared THREAD_LINK= THREADING=-DDDS_THREADS_STL TARGET="-target arm64-apple-macos11" &&
+            cp libdds.dylib ../../mac-lib/libdds_arm.dylib
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: check-hash-cache
+    if: ${{ needs.check-hash-cache.outputs.linux_cached == 'False' }}
+    name: linux-x86_64
+    steps:
+      - uses: actions/cache@v3
+        with:
+          path: linux-lib/**
+          key: linux-${{ needs.check-hash-cache.outputs.dds_hash }}
+          enableCrossOsArchive: true
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build Linux lib
+        run: |
+          mkdir -p linux-lib && cd dds/src && git apply ../../dds.diff &&
+            make -f Makefiles/Makefile_linux_shared THREAD_LINK= THREADING=-DDDS_THREADS_STL &&
+            cp libdds.so ../../linux-lib/
+  build:
+    runs-on: ubuntu-latest
+    needs:
+      - check-hash-cache
+      - build-windows
+      - build-linux
+      - build-mac
+    if:
+      always() &&
+      needs.build-windows.result != 'failed' &&
+      needs.build-linux.result != 'failed' &&
+      needs.build-mac.result != 'failed'
+    name: sonatype publish
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/cache@v3
+        with:
+          path: win-lib/**
+          key: windows-${{ needs.check-hash-cache.outputs.dds_hash }}
+          fail-on-cache-miss: true
+      - uses: actions/cache@v3
+        with:
+          path: mac-lib/**
+          key: mac-${{ needs.check-hash-cache.outputs.dds_hash }}
+          fail-on-cache-miss: true
+      - uses: actions/cache@v3
+        with:
+          path: linux-lib/**
+          key: linux-${{ needs.check-hash-cache.outputs.dds_hash }}
+          fail-on-cache-miss: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - uses: actions/cache@v3
+        with:
+          path: jextract-21/**
+          key: jextract-21
+      - run: '[ -f jextract-21/bin/jextract ] || wget -c https://download.java.net/java/early_access/jextract/1/openjdk-21-jextract+1-2_linux-x64_bin.tar.gz -O - | tar -xz'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+      - run: |
+          mkdir -p dds4j/src/main/resources &&
+            cp win-lib/dds.dll dds4j/src/main/resources &&
+            md5sum win-lib/dds.dll > dds4j/src/main/resources/dds.dll.md5 &&
+            cp mac-lib/libdds_intel.dylib dds4j/src/main/resources &&
+            md5sum mac-lib/libdds_intel.dylib > dds4j/src/main/resources/libdds_intel.dylib.md5 &&
+            cp mac-lib/libdds_arm.dylib dds4j/src/main/resources &&
+            md5sum mac-lib/libdds_arm.dylib > dds4j/src/main/resources/libdds_arm.dylib.md5 &&
+            cp linux-lib/libdds.so dds4j/src/main/resources &&
+            md5sum linux-lib/libdds.so > dds4j/src/main/resources/libdds.so.md5
+      - run: LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./linux-lib ./gradlew test --no-daemon -PjextractPath=jextract-21/
+      - run: ./gradlew clean --no-daemon -PjextractPath=jextract-21/
+      - run: |
+          # https://gist.github.com/sualeh/ae78dc16123899d7942bc38baba5203c
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+      - run:
+          ./gradlew publish --no-daemon -PjextractPath=jextract-21/ -PossrhUsername=${{secrets.OSSRH_USERNAME}} -PossrhPassword=${{secrets.OSSRH_PASSWORD}} -Psigning.gnupg.passphrase=${{secrets.SIGNING_PASSWORD}} -Psigning.gnupg.executable=gpg

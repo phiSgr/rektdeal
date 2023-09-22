@@ -1,0 +1,73 @@
+diff --git a/src/Makefiles/Makefile_Mac_clang_shared b/src/Makefiles/Makefile_Mac_clang_shared
+index f3b4454..03316cf 100644
+--- a/src/Makefiles/Makefile_Mac_clang_shared
++++ b/src/Makefiles/Makefile_Mac_clang_shared
+@@ -1,7 +1,7 @@
+ # --------------------- INFORMATION --------------------------------
+ 
+ # This the DDS Makefile for MacOS and the clang compiler.
+-# It creates a dynamically linked (shared) library, libdds.so.
++# It creates a dynamically linked (shared) library, libdds.dylib.
+ 
+ # --------------------- CONFIGURATION ------------------------------
+ 
+@@ -61,7 +61,7 @@ CC		= g++
+ WARN_FLAGS	= 		\
+ 	-Wshadow 		\
+ 	-Wsign-conversion 	\
+-	-pedantic -Wall -Wextra  \
++	-pedantic -Wall -Wextra -Wno-deprecated-declarations -Wno-sign-conversion  \
+ 	-Wcast-align -Wcast-qual \
+ 	-Wctor-dtor-privacy 	\
+ 	-Wdisabled-optimization \
+@@ -86,7 +86,7 @@ COMPILE_FLAGS	= -fPIC -O3 -flto -mtune=generic -std=c++11 \
+ 		$(DDS_BEHAVIOR) $(THREAD_COMPILE) $(THREADING)
+ 
+ DLLBASE		= dds
+-SHARED_LIB	= lib$(DLLBASE).so
++SHARED_LIB	= lib$(DLLBASE).dylib
+ 
+ LINK_FLAGS	=		\
+ 	-shared			\
+@@ -97,12 +97,13 @@ include $(INCL_SOURCE)
+ 
+ O_FILES 	= $(subst .cpp,.o,$(SOURCE_FILES))
+ 
++TARGET =
+ 
+ macos:	$(O_FILES)
+-	$(CC) -o $(SHARED_LIB) $(O_FILES) $(LINK_FLAGS)
++	$(CC) -o $(SHARED_LIB) $(O_FILES) $(LINK_FLAGS) $(TARGET) -lc++
+ 
+ %.o:	%.cpp
+-	$(CC) $(COMPILE_FLAGS) -c $<
++	$(CC) $(COMPILE_FLAGS) $(TARGET) $(CFLAGS) -c $<
+ 
+ depend:
+ 	makedepend -Y -- $(SOURCE_FILES)
+diff --git a/src/Makefiles/Makefile_linux_shared b/src/Makefiles/Makefile_linux_shared
+index 29898fb..c35956a 100644
+--- a/src/Makefiles/Makefile_linux_shared
++++ b/src/Makefiles/Makefile_linux_shared
+@@ -108,7 +108,7 @@ linux:	$(O_FILES)
+         -o $(SHARED_LIB) $(O_FILES) $(LINK_FLAGS)
+ 
+ %.o:	%.cpp
+-	$(CC) $(COMPILE_FLAGS) -c $<
++	$(CC) $(COMPILE_FLAGS) $(CFLAGS) -c $<
+ 
+ depend:
+ 	makedepend -Y -- $(SOURCE_FILES)
+diff --git a/src/Makefiles/Makefile_mingw b/src/Makefiles/Makefile_mingw
+index c5a0c2e..97bf893 100644
+--- a/src/Makefiles/Makefile_mingw
++++ b/src/Makefiles/Makefile_mingw
+@@ -110,7 +110,7 @@ O_FILES 	= $(subst .cpp,.o,$(SOURCE_FILES)) $(VFILE).o
+ 
+ mingw:	$(O_FILES)
+ 	$(CC) $(LINK1_FLAGS) $(O_FILES) \
+-	-o $(DLL) $(LINK2_FLAGS)
++	-o $(DLL) $(LINK2_FLAGS) -static
+ 
+ %.o:	%.cpp
+ 	$(CC) $(COMPILE_FLAGS) -c $<
