@@ -7,12 +7,12 @@ One way to install Kotlin Jupyter is to use `pip install` with
 cd examples/
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt && pip install -r extra_requirements.txt
+pip install -r requirements.txt
 ```
 
 #### Not Using the `requirements` File
 
-`pip install jupyter && pip install -i https://test.pypi.org/simple/ 'kotlin-jupyter-kernel >= 0.12.0.99'`
+`pip install jupyter kotlin-jupyter-kernel`
 
 ### Start Notebook
 
@@ -42,7 +42,7 @@ Set Up
 cd examples
 python3 -m venv venv
 venv\Scripts\activate.bat
-pip install -r requirements.txt && pip install -r extra_requirements.txt
+pip install -r requirements.txt
 ```
 
 Start Notebook

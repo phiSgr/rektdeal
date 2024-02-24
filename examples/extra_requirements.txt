@@ -1,6 +1,0 @@
--i https://test.pypi.org/simple/
-# The current stable version uses `Thread.stop`,
-# which is removed in newer Java,
-# instead of Thread.interrupt().
-# This messes up the cancellation.
-kotlin-jupyter-kernel >= 0.12.0.99
