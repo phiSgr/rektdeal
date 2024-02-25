@@ -143,7 +143,7 @@ jobs:
         with:
           path: jextract-21/**
           key: jextract-21
-      - run: '[ -f jextract-21/bin/jextract ] || wget -c https://download.java.net/java/early_access/jextract/1/openjdk-21-jextract+1-2_linux-x64_bin.tar.gz -O - | tar -xz'
+      - run: '[ -f jextract-21/bin/jextract ] || wget -c https://download.java.net/java/early_access/jextract/21/1/openjdk-21-jextract+1-2_linux-x64_bin.tar.gz -O - | tar -xz'
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
