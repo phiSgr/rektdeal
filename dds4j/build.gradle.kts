@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("common.library-conventions")
 
-    id("io.github.krakowski.jextract") version "0.4.1"
+    id("io.github.krakowski.jextract") version "0.5.0"
 }
 
 dependencies {
@@ -19,6 +19,9 @@ tasks.withType<KotlinCompile> {
 }
 
 java {
+    // not ideal that we're creating class files version 65 (Java 21)
+    // when they depend on classes in Java 22
+    // but before Kotlin supports Java 22 that'll have to do
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
@@ -41,22 +44,16 @@ kotlin {
 tasks.withType<JextractTask> {
     toolchain.set(
         project.properties["jextractPath"] as String?
-            ?: "${System.getProperty("user.home")}/Downloads/jextract-21/"
+            ?: "${System.getProperty("user.home")}/Downloads/jextract-22/"
     )
 
     header("${rootProject.projectDir}/dds/include/dll.h") {
         targetPackage.set("dds")
         className.set("Dds")
+
+        argFile.set("$projectDir/includes.txt")
     }
-}
-plugins.withType<JextractPlugin>().configureEach {
-    configurations {
-        implementation {
-            dependencies.removeIf {
-                it is FileCollectionDependency
-            }
-        }
-    }
+
 }
 
 publishing {

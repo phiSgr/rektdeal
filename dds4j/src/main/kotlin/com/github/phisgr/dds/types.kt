@@ -1,7 +1,9 @@
 package com.github.phisgr.dds
 
+import com.github.phisgr.dds.internal.*
+import dds.ddTableDeal
+import dds.ddTableResults
 import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
 
 @JvmInline
 value class Rank internal constructor(val encoded: Int) : Comparable<Rank> {
@@ -93,9 +95,9 @@ class CIntArray(val memory: MemorySegment) {
  * Wraps around a [MemorySegment] with the layout `char[size][maxLength]`.
  */
 data class CStringArray(val memory: MemorySegment, val maxLength: Long) {
-    operator fun get(index: Int): String = memory.getUtf8String(index * maxLength)
+    operator fun get(index: Int): String = memory.getString(index * maxLength)
     operator fun set(index: Int, value: String) {
-        memory.asSlice(index * maxLength, maxLength).setUtf8String(0, value)
+        memory.asSlice(index * maxLength, maxLength).setString(0, value)
     }
 
     fun size(): Int = Math.toIntExact(memory.byteSize() / maxLength)
@@ -171,11 +173,11 @@ class Cards(val memory: MemorySegment) {
 
     @JvmName("get")
     operator fun get(hand: Direction, suit: Suit): Holding =
-        Holding(memory.get(ValueLayout.JAVA_INT, (hand.encoded * 4 + suit.encoded) * 4L))
+        Holding(ddTableDeal.cards(memory, hand.encoded.toLong(), suit.encoded.toLong()))
 
     @JvmName("set")
     operator fun set(hand: Direction, suit: Suit, value: Holding) {
-        memory.set(ValueLayout.JAVA_INT, (hand.encoded * 4 + suit.encoded) * 4L, value.encoded)
+        ddTableDeal.cards(memory, hand.encoded.toLong(), suit.encoded.toLong(), value.encoded)
     }
 
     override fun toString(): String =
@@ -199,7 +201,7 @@ class DdTable(val memory: MemorySegment) {
     }
 
     operator fun get(strain: Strain, hand: Direction): Int =
-        memory.get(ValueLayout.JAVA_INT, (strain.encoded * 4 + hand.encoded) * 4L)
+        ddTableResults.resTable(memory, strain.encoded.toLong(), hand.encoded.toLong())
 
     override fun toString(): String {
         return formatString.format(

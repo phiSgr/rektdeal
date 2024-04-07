@@ -6,7 +6,7 @@ open class Seats
 
 /**
  * Removing the internal visibility so that rektdeal code can
- * call the constructor, instead of using [toRank] which has the range check.
+ * call the constructor, instead of using [com.github.phisgr.dds.internal.toRank] which has the range check.
  */
 @JvmInline
 value class Rank /*internal constructor*/(val encoded: Int) {

@@ -1,5 +1,7 @@
 package com.github.phisgr.dds;
 
+import com.github.phisgr.dds.internal.UtilKt;
+
 import java.lang.foreign.MemorySegment;
 
 public final class Suit extends Strain {
@@ -35,15 +37,15 @@ public final class Suit extends Strain {
         }
 
         public Suit get(int index) {
-            return SUITS.get(InternalUtilKt.getInt(memory, index));
+            return SUITS.get(UtilKt.getInt(memory, index));
         }
 
         public void set(int index, Suit value) {
-            InternalUtilKt.setInt(memory, index, value.getEncoded());
+            UtilKt.setInt(memory, index, value.getEncoded());
         }
 
         public int size() {
-            return InternalUtilKt.getIntSize(memory);
+            return UtilKt.getIntSize(memory);
         }
 
         public String toString(int count) {

@@ -19,7 +19,7 @@ pip install -r requirements.txt
 ```sh
 cd examples/
 source venv/bin/activate
-export JAVA_HOME=`/usr/libexec/java_home -v 21`
+export JAVA_HOME=`/usr/libexec/java_home -v 22`
 KOTLIN_JUPYTER_JAVA_OPTS='--enable-preview' jupyter notebook
 ```
 

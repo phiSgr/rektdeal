@@ -141,13 +141,13 @@ jobs:
             ${{ runner.os }}-gradle-
       - uses: actions/cache@v3
         with:
-          path: jextract-21/**
-          key: jextract-21
-      - run: '[ -f jextract-21/bin/jextract ] || wget -c https://download.java.net/java/early_access/jextract/21/1/openjdk-21-jextract+1-2_linux-x64_bin.tar.gz -O - | tar -xz'
+          path: jextract-22/**
+          key: jextract-22
+      - run: '[ -f jextract-22/bin/jextract ] || wget -c https://download.java.net/java/early_access/jextract/22/3/openjdk-22-jextract+3-13_linux-x64_bin.tar.gz -O - | tar -xz'
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21'
+          java-version: '22'
       - run: |
           mkdir -p dds4j/src/main/resources &&
             cp win-lib/dds.dll dds4j/src/main/resources &&
@@ -158,10 +158,10 @@ jobs:
             md5sum mac-lib/libdds_arm.dylib > dds4j/src/main/resources/libdds_arm.dylib.md5 &&
             cp linux-lib/libdds.so dds4j/src/main/resources &&
             md5sum linux-lib/libdds.so > dds4j/src/main/resources/libdds.so.md5
-      - run: LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./linux-lib ./gradlew test --no-daemon -PjextractPath=jextract-21/
-      - run: ./gradlew clean --no-daemon -PjextractPath=jextract-21/
+      - run: LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./linux-lib ./gradlew test --no-daemon -PjextractPath=jextract-22/
+      - run: ./gradlew clean --no-daemon -PjextractPath=jextract-22/
       - run: |
           # https://gist.github.com/sualeh/ae78dc16123899d7942bc38baba5203c
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
       - run:
-          ./gradlew publish --no-daemon -PjextractPath=jextract-21/ -PossrhUsername=${{secrets.OSSRH_USERNAME}} -PossrhPassword=${{secrets.OSSRH_PASSWORD}} -Psigning.gnupg.passphrase=${{secrets.SIGNING_PASSWORD}} -Psigning.gnupg.executable=gpg
+          ./gradlew publish --no-daemon -PjextractPath=jextract-22/ -PossrhUsername=${{secrets.OSSRH_USERNAME}} -PossrhPassword=${{secrets.OSSRH_PASSWORD}} -Psigning.gnupg.passphrase=${{secrets.SIGNING_PASSWORD}} -Psigning.gnupg.executable=gpg

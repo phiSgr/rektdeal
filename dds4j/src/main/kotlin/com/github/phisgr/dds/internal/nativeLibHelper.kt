@@ -1,10 +1,12 @@
-package com.github.phisgr.dds
+package com.github.phisgr.dds.internal
 
+import com.github.phisgr.dds.NORTH
 import java.io.File
 import java.io.FileNotFoundException
-import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.*
+import kotlin.io.path.createFile
+import kotlin.io.path.deleteIfExists
 
 private const val PATH_PROP = "java.library.path"
 
@@ -17,7 +19,7 @@ private const val DDS4J_LOAD = "DDS4J_LOAD"
 /**
  * Environment variable for where to unzip the native library.
  * Used when [DDS4J_LOAD] is `EXPAND` or not set.
- * Defaults `~/.dds4j`.
+ * Defaults to `~/.dds4j`.
  */
 private const val DDS4J_DIR = "DDS4J_DIR"
 
@@ -88,7 +90,11 @@ private fun expandAndLoadNativeLib() {
     val file = dir.resolve(System.mapLibraryName("dds"))
 
     if (!md5Same(file, classLoader, libToLoad)) {
-        Files.createFile(file.toPath())
+        file.toPath().run {
+            deleteIfExists()
+            createFile()
+        }
+
         val libStream = classLoader.getResourceAsStream(libToLoad)
             ?: throw IllegalStateException("Native DDS library not found in jar.")
 

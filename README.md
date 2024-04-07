@@ -15,8 +15,7 @@ ReKtDeal is thus my rewrite of Redeal using another language: Kotlin.
 The deal generation in ReKtDeal is often 100x faster than Redeal,
 and that's before multi-threading.
 
-ReKtDeal runs on JVM 21. When [FFM](https://openjdk.org/jeps/454)
-comes out of preview in Java 22, an update will be created.\
+ReKtDeal runs on JVM 22.
 The [embedded double dummy solver](./dds4j) is pre-built for
 Windows/Linux x86_64, macOS x86_64/Apple Silicon.
 I believe this covers most users.
@@ -36,7 +35,7 @@ Using it is no different from any other Java Library.
 
 ```kotlin
 dependencies {
-    implementation("com.github.phisgr:rektdeal:0.0.0")
+    implementation("com.github.phisgr:rektdeal:0.1.0")
 }
 
 // Set the JVM args
@@ -54,7 +53,7 @@ But I imagine most uses are going to be interactive.
 For that [Kotlin Jupyter](https://github.com/Kotlin/kotlin-jupyter) can be used.
 
 ```kotlin
-@file:DependsOn("com.github.phisgr:rektdeal:0.0.0")
+@file:DependsOn("com.github.phisgr:rektdeal:0.1.0")
 ```
 
 # Talk is cheap. Show me the code.

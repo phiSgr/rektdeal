@@ -33,13 +33,16 @@ class Deal private constructor(internal val cards: ByteArray, presorted: Int) : 
     private val hands = DIRECTIONS.mapToArray { direction ->
         Hand(cards, direction)
     }
+
+    /**
+     * Lowest 4 bits are for whether the [SuitHolding]s are sorted.
+     * Then 4 bits for whether [Hand.init] is called.
+     */
     private var handInit: Int = presorted
     fun getHand(direction: Direction): Hand = this[direction.encoded]
 
     internal fun reset(presorted: Int) {
         handInit = presorted
-        // who would call ddTricks in the accept function though?
-        ddTricksCache.clear()
     }
 
     val north get() = this[0]
@@ -86,30 +89,26 @@ class Deal private constructor(internal val cards: ByteArray, presorted: Int) : 
     }
 
     fun ddTricks(strain: Strain, declarer: Direction): Int =
-        ddTricksCache.getOrPut(strain.encoded * 4 + declarer.encoded) {
-            maybeUseResources { deal, futureTricks, threadIndex ->
-                deal.trump = strain
-                deal.first = declarer.next()
-                deal.currentTrickRank.clear()
-                deal.currentTrickSuit.clear()
-                setCards(deal.remainCards)
+        maybeUseResources { deal, futureTricks, threadIndex ->
+            deal.trump = strain
+            deal.first = declarer.next()
+            deal.currentTrickRank.clear()
+            deal.currentTrickSuit.clear()
+            setCards(deal.remainCards)
 
-                solveBoard(deal, target = -1, solutions = 1, mode = 1, futureTricks, threadIndex)
-                13 - futureTricks.score[0]
-            }
+            solveBoard(deal, target = -1, solutions = 1, mode = 1, futureTricks, threadIndex)
+            13 - futureTricks.score[0]
         }
-
-    private val ddTricksCache = mutableMapOf<Int, Int>()
-
 
     @Suppress("LocalVariableName")
     fun handDiagram(
-        N: Boolean = false,
-        E: Boolean = false,
-        S: Boolean = false,
-        W: Boolean = false,
+        vararg directions: Direction,
     ): String {
-        if (!N && !E && !S && !W) return handDiagram(N = true, E = true, S = true, W = true)
+        if (directions.isEmpty()) return handDiagram(NORTH, EAST, SOUTH, WEST)
+        val N = NORTH in directions
+        val E = EAST in directions
+        val S = SOUTH in directions
+        val W = WEST in directions
 
         val EIGHT_SPACES = "        "
         val builder = StringBuilder()
@@ -398,10 +397,10 @@ class SuitHolding internal constructor(private val dealCards: ByteArray, handOff
                     top3 >= 0xe00 -> 1.0 // A(xx)
                     top3 == 0xdba || top3 >= 0xdc2 -> 1.5 //  KJT KQx
                     top3 >= 0xdb0 -> 1.0 // K(Q/J)(x)
-                    top3 > 0xd00 -> 0.5 // if (top3 and 0xf == 0) 0.5f else 1f // K(x) Kxx
+                    top3 > 0xd00 -> 0.5 // if (top3 and 0xf == 0) 0.5 else 1.0 // Kx(x)
                     top3 == 0xd00 -> 0.0 // stiff K
                     top3 >= 0xcb2 -> 1.0 // QJx
-                    top3 >= 0xc20 -> if (top3 and 0xf == 0) 0.0 else 0.5 // 0.5f // Qx(x)
+                    top3 >= 0xc20 -> if (top3 and 0xf == 0) 0.0 else 0.5 // 0.5 // Qx(x)
                     top3 == 0xc00 -> 0.0 // stiff Q
                     top3 >= 0xba2 -> 0.5 // JTx
                     else -> 0.0

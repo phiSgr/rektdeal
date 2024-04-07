@@ -100,9 +100,9 @@ inline fun <T> multiThread(
                         if (Thread.interrupted()) break
                         val dealt = d(maxTry = ONE_MIL) { accept(it) }
                         if (dealt != null) {
-                            val current = counter.incrementAndGet()
-                            if (current in 1..count) { // guards against overflow
-                                action(current, dealt, s)
+                            val current = counter.getAndIncrement()
+                            if (current in 0..<count) { // guards against overflow
+                                action(current + 1, dealt, s)
                             }
                         }
                     }

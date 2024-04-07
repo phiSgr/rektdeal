@@ -1,6 +1,10 @@
-package com.github.phisgr.dds
+/**
+ * putting static fields/methods in Java in the top level in Kotlin
+ */
 
-// putting static fields/methods in Java in the top level in Kotlin
+@file:JvmName("-internalReExport") // invisible in Java code
+
+package com.github.phisgr.dds
 
 val S: Suit = Strain.S
 val H: Suit = Strain.H

@@ -1,5 +1,7 @@
 package com.github.phisgr.dds
 
+import com.github.phisgr.dds.internal.toHolding
+import com.github.phisgr.dds.internal.toRank
 import java.util.*
 import kotlin.test.assertEquals
 

@@ -12,7 +12,7 @@ dependencies {
     testCompileOnly(project(":api8"))
 
     // for use in Jupyter notebooks
-    compileOnly("org.jetbrains.kotlinx:dataframe:0.12.0")
+    compileOnly("org.jetbrains.kotlinx:dataframe:0.13.1")
 
     api(project(":dds4j"))
     testImplementation(kotlin("test"))

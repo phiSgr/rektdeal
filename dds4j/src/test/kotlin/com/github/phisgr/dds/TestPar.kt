@@ -160,7 +160,7 @@ class TestPar {
 
                     val resString = arena.allocate(128).also {
                         convertToDealerTextFormat(res[i], it)
-                    }.getUtf8String(0)
+                    }.getString(0)
                     println(resString)
                     val by = if (i == 0) "N" else "E"
                     assertEquals("Par 2220: $by 7N", resString)
@@ -204,7 +204,7 @@ class TestPar {
 
                 val resString = arena.allocate(128)
                 convertToDealerTextFormat(res, resString)
-                assertEquals("Par -1520: E 7N", resString.getUtf8String(0))
+                assertEquals("Par -1520: E 7N", resString.getString(0))
             }
 
         }

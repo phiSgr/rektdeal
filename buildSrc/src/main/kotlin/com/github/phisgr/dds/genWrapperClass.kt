@@ -24,7 +24,7 @@ private fun TypeSpec.Builder.addProp(
     val prop = PropertySpec.builder(fieldName, t)
     prop.getter(
         FunSpec.getterBuilder()
-            .addStatement("return $jClassName.`$fieldName\$get`(memory)${typeOverride?.wrap ?: ""}")
+            .addStatement("return $jClassName.$fieldName(memory)${typeOverride?.wrap ?: ""}")
             .build()
     )
 
@@ -32,7 +32,7 @@ private fun TypeSpec.Builder.addProp(
         prop.mutable().setter(
             FunSpec.setterBuilder()
                 .addParameter("value", t)
-                .addStatement("$jClassName.`$fieldName\$set`(memory, value${typeOverride?.unwrap ?: ""})")
+                .addStatement("$jClassName.$fieldName(memory, value${typeOverride?.unwrap ?: ""})")
                 .build()
         )
     }
@@ -47,7 +47,7 @@ private fun TypeSpec.Builder.addStringProp(fieldName: String, jClassName: String
     val prop = PropertySpec.builder(fieldName, String::class)
     prop.getter(
         FunSpec.getterBuilder()
-            .addStatement("return $jClassName.`$fieldName\$slice`(memory).getUtf8String(0)")
+            .addStatement("return $jClassName.$fieldName(memory).getString(0)")
             .build()
     )
 
@@ -55,7 +55,7 @@ private fun TypeSpec.Builder.addStringProp(fieldName: String, jClassName: String
         prop.mutable().setter(
             FunSpec.setterBuilder()
                 .addParameter("value", String::class)
-                .addStatement("$jClassName.`$fieldName\$slice`(memory).setUtf8String(0, value)")
+                .addStatement("$jClassName.$fieldName(memory).setString(0, value)")
                 .build()
         )
     }
@@ -69,7 +69,7 @@ private fun TypeSpec.Builder.addStringArray(fieldName: String, jClassName: Strin
             .builder(fieldName, dds4jPackage("CStringArray"))
             .getter(
                 FunSpec.getterBuilder()
-                    .addStatement("return CStringArray($jClassName.`$fieldName\$slice`(memory), maxLength = $maxLength)")
+                    .addStatement("return CStringArray($jClassName.$fieldName(memory), maxLength = $maxLength)")
                     .build()
             )
             .build()
@@ -85,7 +85,7 @@ private fun TypeSpec.Builder.addIntArray(fieldName: String, jClassName: String) 
     val prop = PropertySpec.builder(fieldName, t)
     prop.getter(
         FunSpec.getterBuilder()
-            .addStatement("return %T($jClassName.`$fieldName\$slice`(memory))", t)
+            .addStatement("return %T($jClassName.$fieldName(memory))", t)
             .build()
     )
     addProperty(prop.build())
@@ -95,11 +95,18 @@ private fun isCards(fieldName: String, javaText: String) =
     Regex("cards$", RegexOption.IGNORE_CASE).containsMatchIn(fieldName) &&
         Regex("int$ws$fieldName\\[4\\]\\[4\\]").containsMatchIn(javaText)
 
-private fun TypeSpec.Builder.addCards(fieldName: String, jClassName: String) {
+private fun TypeSpec.Builder.addCards(fieldName: String, jClassName: String, javaText: String) {
+    val slice = if (jClassName == "ddTableDeal") {
+        check(fieldName == "cards")
+        check(zeroOffsetCheck("cards").containsMatchIn(javaText))
+        "memory"
+    } else {
+        "$jClassName.$fieldName(memory)"
+    }
     val prop = PropertySpec.builder(fieldName, dds4jPackage("Cards"))
     prop.getter(
         FunSpec.getterBuilder()
-            .addStatement("return Cards($jClassName.`$fieldName\$slice`(memory))")
+            .addStatement("return Cards($slice)")
             .build()
     )
     addProperty(prop.build())
@@ -120,7 +127,7 @@ private fun TypeSpec.Builder.addStructArray(
             dds4jPackage(kStructName).nestedClass("Array")
         ).getter(
             FunSpec.getterBuilder()
-                .addStatement("return $kStructName.Array($jClassName.`$fieldName\$slice`(memory))")
+                .addStatement("return $kStructName.Array($jClassName.$fieldName(memory))")
                 .build()
         ).build()
     )
@@ -141,7 +148,7 @@ private fun memoryArray(javaClassName: String): TypeSpec {
                 .addModifiers(KModifier.OPERATOR)
                 .addParameter("index", Int::class)
                 .returns(dds4jPackage(ktClassName))
-                .addStatement("return $ktClassName(memory.asSlice($javaClassName.sizeof() * index, $javaClassName.`\$LAYOUT`()))")
+                .addStatement("return $ktClassName(memory.asSlice($javaClassName.sizeof() * index, $javaClassName.layout()))")
                 .build()
         )
         .addFunction(
@@ -168,10 +175,7 @@ private fun memoryArray(javaClassName: String): TypeSpec {
 }
 
 // to make sure no other fields go before it, i.e. offset is always 0
-private val ddOffsetCheck = Regex(
-    "public static MemorySegment resTable\\\$slice\\(MemorySegment seg\\) \\{$ws" +
-        "return seg.asSlice\\(0, 80\\);"
-)
+private fun zeroOffsetCheck(fieldName: String) = Regex("private static final long $fieldName\\\$OFFSET = 0;")
 
 private fun TypeSpec.Builder.addDdTable() {
     addProperty(
@@ -180,7 +184,7 @@ private fun TypeSpec.Builder.addDdTable() {
             dds4jPackage("DdTable")
         ).getter(
             FunSpec.getterBuilder()
-                // with the ddOffsetCheck, we can save the `resTable$slice` call
+                // with the offset check, we can save the `resTable` getter call
                 .addStatement("return DdTable(memory)")
                 .build()
         ).build()
@@ -200,7 +204,7 @@ private fun memoryWrapperClass(name: String) = TypeSpec
             .build()
     )
 
-private val fieldRegex = Regex("(\\w+)$ws(\\w+)\\\$(get|slice)\\(MemorySegment seg\\)")
+private val fieldRegex = Regex("public static (\\w+)$ws(\\w+)\\(MemorySegment struct\\)")
 fun toWrapperClass(
     javaFile: File,
     jClassName: String,
@@ -224,10 +228,8 @@ fun toWrapperClass(
         val t = field.groupValues[1]
 
         if (t != MemorySegment::class.simpleName) {
-            require(field.groupValues[3] == "get")
             spec.addProp(fieldName = name, type = t, jClassName = jClassName, getterOnly)
         } else {
-            require(field.groupValues[3] == "slice")
             if (isStringField(fieldName = name, javaText = javaText)) {
                 spec.addStringProp(fieldName = name, jClassName = jClassName, getterOnly = getterOnly)
             } else if (isIntArray(fieldName = name, javaText = javaText)) {
@@ -254,12 +256,12 @@ fun toWrapperClass(
                             match.groupValues[1].toInt(),
                         )
                     } else if (isCards(name, javaText)) {
-                        spec.addCards(name, jClassName)
+                        spec.addCards(name, jClassName, javaText)
                     } else {
                         check(jClassName == "ddTableResults")
                         check(name == "resTable")
-                        check(javaText.contains("int  resTable[5][4];"))
-                        check(ddOffsetCheck.containsMatchIn(javaText))
+                        check(javaText.contains("int resTable[5][4];"))
+                        check(zeroOffsetCheck("resTable").containsMatchIn(javaText))
                         spec.addDdTable()
                     }
                 }

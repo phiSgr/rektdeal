@@ -6,10 +6,10 @@ import java.lang.foreign.MemorySegment
 import java.util.*
 
 private val funRegex = Regex("public static int ([A-Z][a-z]\\w+)\\([^)]+\\)")
-private fun cRegex(name: String) = Regex("\\* \\{@snippet :$ws\\* int $name\\((.*)\\);")
+private fun cRegex(name: String) = Regex("/\\*\\*$ws\\* \\{@snippet lang=c :$ws\\* int $name\\((.*)\\)")
 
-// capture groups:              1       2          3         4       5     6   7
-private val paramRegex = Regex("(struct (\\w+)\\*?|(char\\*)|(\\w+)) (\\w+)(\\[(\\d+)\\])?")
+// capture groups:              1       2           3          4       5     6   7
+private val paramRegex = Regex("(struct (\\w+) \\*?|(char \\*)|(\\w+) )(\\w+)(\\[(\\d+)])?")
 
 private fun structNameToClassName(structName: String) = dds4jPackage(toKtName(structName))
 
@@ -60,7 +60,7 @@ fun genFun(javaFile: String): FileSpec {
                     structNameToClassName(structName).nestedClass("Array")
                 }
             } else if (param.groupValues[3] != "") {
-                check(param.groupValues[3] == "char*")
+                check(param.groupValues[3] == "char *")
                 paramUsage += paramName
                 MemorySegment::class.asTypeName()
             } else if (param.groupValues[4] != "") {

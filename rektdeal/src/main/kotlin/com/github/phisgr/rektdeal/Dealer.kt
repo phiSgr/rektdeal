@@ -91,7 +91,7 @@ class Dealer(predeal: Map<Direction, PreDeal>? = null) {
         if (smartStack == null) {
             setUpCards(leftCards)
         }
-        presorted = this.preDealDirections.fold(0) { acc, direction -> acc and (1 shl direction) }
+        presorted = this.preDealDirections.fold(0) { acc, direction -> acc or (1 shl direction) }
         deal = newDealObject()
     }
 
@@ -106,7 +106,7 @@ class Dealer(predeal: Map<Direction, PreDeal>? = null) {
         val dealCards = deal.cards
         if (smartStack != null) {
             val smartCards = smartStack()
-            dealFromHolding(smartCards, smartStackDirection, dealCards)
+            dealFromHolding(smartCards, smartStackDirection, dealCards, deal[smartStackDirection])
             setUpCards(leftCards.removeCards(smartCards))
         }
         cardsToDeal.shuffle()
@@ -161,9 +161,14 @@ class Dealer(predeal: Map<Direction, PreDeal>? = null) {
         }
     }
 
-    private fun dealFromHolding(cards: HoldingBySuit, direction: Int, dealCards: ByteArray) {
+    private fun dealFromHolding(cards: HoldingBySuit, direction: Int, dealCards: ByteArray, hand: Hand) {
         val offset = 13 * direction
-        cards.forEachIndexed(startIndex = offset) { index, card ->
+        cards.forEachIndexed(startIndex = offset, afterEachSuit = { index, suit ->
+            if (suit != 3) {
+                hand[suit].end = index
+                hand[suit + 1].start = index
+            }
+        }) { index, card ->
             dealCards[index] = card
         }
     }
@@ -175,7 +180,8 @@ class Dealer(predeal: Map<Direction, PreDeal>? = null) {
     private fun newDealObject(): Deal {
         val newDeal = Deal(presorted)
         preDeals.forEachIndexed { index, preDeal ->
-            dealFromHolding(HoldingBySuit(preDeal), direction = preDealDirections[index], newDeal.cards)
+            val direction = preDealDirections[index]
+            dealFromHolding(HoldingBySuit(preDeal), direction = direction, newDeal.cards, newDeal[direction])
         }
         return newDeal
     }

@@ -11,7 +11,7 @@ private val errorMessages = HashMap.newHashMap<Int, String>(26).also {
         val res = arena.allocate(80)
         errorMessageRange.forEach { code ->
             Dds.ErrorMessage(-code, res)
-            val msg = res.getUtf8String(0)
+            val msg = res.getString(0)
             if (msg == "Not a DDS error code") {
                 holeCount++
             } else {

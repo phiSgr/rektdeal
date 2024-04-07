@@ -30,7 +30,7 @@ class PayOff<T>(val entries: List<T>, val diff: IntBinaryOperator) {
         }
 
         val matchPoint: IntBinaryOperator = IntBinaryOperator { us, them -> // can be tricks, can be scores
-            (us - them).sign
+            (us - them).sign * 100
         }
 
         val impFromScores: IntBinaryOperator = IntBinaryOperator { ourScore, theirScore ->
@@ -124,27 +124,24 @@ class PayOff<T>(val entries: List<T>, val diff: IntBinaryOperator) {
         repeat(size) { i ->
             print(entryStrings[i])
             repeat(size) { j ->
-                val index = i * size + j
-                val mean = means[index]
-                val stdErr = stdErrs[index]
-                val style = when {
-                    mean > stdErr -> BRIGHT_GREEN
-                    mean < -stdErr -> BRIGHT_RED
-                    else -> ""
-                }
-
                 if (i != j) {
+                    val index = i * size + j
+                    val mean = means[index]
+                    val stdErr = stdErrs[index]
+                    val style = when {
+                        mean > stdErr -> BRIGHT_GREEN
+                        mean < -stdErr -> BRIGHT_RED
+                        else -> ""
+                    }
+
                     print(style)
                     print(String.format("%+.2f", mean).padEnd(8, ' '))
                     print(RESET_ALL)
                 } else {
                     print(EIGHT_SPACES)
                 }
-
-                if (j == size - 1) {
-                    println()
-                }
             }
+            println()
 
             print(EIGHT_SPACES)
             repeat(size) { j ->
@@ -155,10 +152,8 @@ class PayOff<T>(val entries: List<T>, val diff: IntBinaryOperator) {
                 } else {
                     print(EIGHT_SPACES)
                 }
-                if (j == size - 1) {
-                    println()
-                }
             }
+            println()
         }
     }
 

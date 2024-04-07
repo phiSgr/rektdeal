@@ -7,6 +7,7 @@ import dds.futureTricks;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 import static com.github.phisgr.dds.Dds.solveBoard;
@@ -32,20 +33,20 @@ public class Dds4j {
     void rawDds() {
         Arena arena = Arena.global();
         MemorySegment deal = dealPBN.allocate(arena);
-        dealPBN.trump$set(deal, 0);
-        dealPBN.first$set(deal, 0);
-        dealPBN.currentTrickSuit$slice(deal).fill((byte) 0);
-        dealPBN.currentTrickRank$slice(deal).fill((byte) 0);
-        dealPBN.remainCards$slice(deal)
-                .setUtf8String(0, "N:QJ6.K652.J85.T98 873.J97.AT764.Q4 K5.T83.KQ9.A7652 AT942.AQ4.32.KJ3");
+        dealPBN.trump(deal, 0);
+        dealPBN.first(deal, 0);
+        dealPBN.currentTrickSuit(deal).fill((byte) 0);
+        dealPBN.currentTrickRank(deal).fill((byte) 0);
+        dealPBN.remainCards(deal)
+                .setString(0, "N:QJ6.K652.J85.T98 873.J97.AT764.Q4 K5.T83.KQ9.A7652 AT942.AQ4.32.KJ3");
 
         MemorySegment ftMemory = futureTricks.allocate(arena);
         int returnCode = SolveBoardPBN(deal, -1, 1, 1, ftMemory, 0);
-        if (returnCode != 1) throw new IllegalArgumentException(STR."Got return code \{returnCode}");
+        if (returnCode != 1) throw new IllegalArgumentException("Got return code " + returnCode);
 
-        int trickCount = 13 - futureTricks.score$slice(ftMemory).get(ValueLayout.JAVA_INT, 0);
+        int trickCount = 13 - futureTricks.score(ftMemory, 0);
 
-        System.out.println(STR."The double dummy tricks for declarer is \{trickCount}");
+        System.out.println("The double dummy tricks for declarer is " + trickCount);
     }
 
     void dds4jPBN() {
@@ -61,7 +62,8 @@ public class Dds4j {
         solveBoardPBN(deal, -1, 1, 1, futureTricks, 0);
 
         System.out.println(futureTricks);
-        System.out.println(STR."The double dummy tricks for declarer is \{13 - futureTricks.getScore().get(0)}");
+        // TODO: change it back to STR. when we can `--enable-preview`
+        System.out.println("The double dummy tricks for declarer is " + (13 - futureTricks.getScore().get(0)));
     }
 
     void dds4j() {
@@ -111,6 +113,6 @@ public class Dds4j {
         solveBoard(deal, -1, 1, 1, futureTricks, 0);
 
         System.out.println(futureTricks);
-        System.out.println(STR."The double dummy tricks for declarer is \{13 - futureTricks.getScore().get(0)}");
+        System.out.println("The double dummy tricks for declarer is" + (13 - futureTricks.getScore().get(0)));
     }
 }

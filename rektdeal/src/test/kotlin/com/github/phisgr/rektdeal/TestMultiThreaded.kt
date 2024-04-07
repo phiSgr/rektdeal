@@ -3,6 +3,7 @@ package com.github.phisgr.rektdeal
 import com.github.phisgr.dds.N
 import com.github.phisgr.dds.Rank
 import com.github.phisgr.dds.SOUTH
+import com.github.phisgr.dds.threadCount
 import org.junit.jupiter.api.assertThrows
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicIntegerArray
@@ -79,11 +80,10 @@ class TestMultiThreaded {
         val i = AtomicInteger()
         val n = 1000_000
 
-        val table = (15..17).associateWith { AtomicInteger() }
-
-        multiThread(
+        val counts = multiThread(
             count = n,
             dealer = { Dealer(N = "J763 J874 74 AQ5") },
+            state = { IntArray(3) },
             accept = { deal ->
                 i.incrementAndGet()
 
@@ -101,16 +101,23 @@ class TestMultiThreaded {
                             (opp.freakness < 6 && opp.l1 < 6 || opp.playingTricks < 6)
                     }
             },
-            action = { _, deal ->
-                table[deal.south.hcp]!!.incrementAndGet()
+            action = { _, deal, state ->
+                state[deal.south.hcp - 15]++
             }
         )
+
+        val table = (15..17).associateWith { hcp ->
+            counts.sumOf { it[hcp - 15] }
+        }
+
         println(table)
         println("Took $i tries to generate $n deals.")
 
         // Took half an hour to get these numbers from the Python script
+        // Single-threaded, this test takes about 9 seconds
+        // with 12 threads, about 2 seconds - when the work per deal is cheap, the shared counter memory access cost becomes significant
         val diff = mapOf(15 to 411502, 16 to 334853, 17 to 253645).mapValues { (hcp, count) ->
-            (table[hcp]!!.get() - count) / sdBinomial(n = n, np = count)
+            (table[hcp]!! - count) / sdBinomial(n = n, np = count)
         }
         println(diff)
         diff.forEach { (_, d) -> assertTrue(abs(d) < 5) } // 5 sigma failure, at most 0.25% away

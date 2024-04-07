@@ -3,6 +3,7 @@ package com.github.phisgr.rektdeal
 import org.junit.jupiter.api.assertThrows
 import kotlin.math.abs
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 
@@ -94,6 +95,7 @@ class TestDealer {
         repeat(n) {
             val deal = dealer { deal ->
                 i++
+                assertEquals(deal.south.shape, listOf(6, 2, 3, 2))
                 deal.east.hcp > 18 && (deal.east.hcp > 22 || deal.east.losers < 2)
             }
             println(deal.toString())

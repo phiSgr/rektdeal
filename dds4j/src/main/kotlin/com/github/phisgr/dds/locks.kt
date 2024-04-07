@@ -1,10 +1,12 @@
 package com.github.phisgr.dds
 
+import com.github.phisgr.dds.internal.tryLoadLib
 import dds.Dds
 import java.lang.foreign.Arena
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.withLock
 
 val threadCount = Arena.ofConfined().use {
     tryLoadLib()
@@ -36,14 +38,5 @@ inline fun <T> withThread(id: Int, action: () -> T): T {
         locks[id].withLock {
             action()
         }
-    }
-}
-
-inline fun <T> Lock.withLock(action: () -> T): T {
-    lock()
-    try {
-        return action()
-    } finally {
-        unlock()
     }
 }
