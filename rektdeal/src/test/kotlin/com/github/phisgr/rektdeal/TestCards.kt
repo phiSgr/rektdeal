@@ -63,9 +63,7 @@ class TestCards {
 
     /**
      * [Redeal reference implementation](
-     * https://github.com/anntzer/redeal/blob/e2e81a477fd31ae548a340b5f0f380594d3d0ad6/redeal/redeal.py#L499)
-     *
-     * Except that KT(x) is 0.5 tricks instead of 1 trick.
+     * https://github.com/anntzer/redeal/blob/ab4eb3f30d704b58831f6692a9977be08cf4c536/redeal/redeal.py#L510)
      */
     private fun playingTricksRedeal(suitHolding: SuitHolding): Double {
         val lenPt = max(suitHolding.size - 3, 0).toDouble()
@@ -82,7 +80,6 @@ class TestCards {
             containsAll(a, q) || containsAll(k, j, t) -> 1.5 + lenPt
             containsAll(a, j) || containsAll(k, q) && suitHolding.size >= 3 -> 1.5 + lenPt
             containsAll(a) || containsAll(k, q) || containsAll(k, j) -> 1 + lenPt
-//            containsAll(k, t) ||
             containsAll(q, j) && suitHolding.size >= 3 -> 1 + lenPt
             containsAll(k) && suitHolding.size >= 2 ||
                 (containsAll(q) || containsAll(j, t)) && suitHolding.size >= 3 ->
