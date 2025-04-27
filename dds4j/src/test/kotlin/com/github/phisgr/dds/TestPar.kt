@@ -70,13 +70,52 @@ class TestPar {
             }
             println()
 
+            // test 4 suits
+            res.memory.fill(0)
+            res.resTable[S, NORTH] = 8
+            res.resTable[S, SOUTH] = 8
+            res.resTable[H, NORTH] = 8
+            res.resTable[H, SOUTH] = 8
+            res.resTable[C, NORTH] = 9
+            res.resTable[C, SOUTH] = 9
+            res.resTable[D, NORTH] = 9
+            res.resTable[D, SOUTH] = 9
+
+            dealerParBin(res, parBin, WEST, vul[0])
+            println(parBin)
+            assertEquals(110, parBin.score)
+            assertEquals(4, parBin.number)
+
+            dealerPar(res, parStr, SOUTH, vul[0])
+            println(parStr)
+            assertEquals(4, parStr.number)
+            assertEquals(
+                buildSet {
+                    repeat(parStr.number) { add(parStr.contracts[it]) }
+                },
+                buildSet {
+                    repeat(parStr.number) { add("1${SUITS[it]}-NS+${1 + it / 2}") }
+                }
+            )
+            par(res, par, vul[0])
+            println(par)
+
+            assertEquals("NS ${parBin.score}", par.parScore[0])
+            assertEquals("EW -${parBin.score}", par.parScore[1])
+            val contractString = "NS 12S,NS 12H,NS 123D,NS 123C"
+            assertEquals("NS:$contractString", par.parContractsString[0])
+            assertEquals("EW:$contractString", par.parContractsString[1])
+
+            println()
+
             // test empty
             res.memory.fill(0)
             dealerParBin(res, parBin, dealer[0], vul[0])
             println(parBin)
             assertEquals(0, parBin.score)
+            // parBin.contracts is not overwritten. i.e. contains previous result
+            // but parBin.number is overwritten to 1, even though parBin.contracts[0] contains previous results
             assertEquals(1, parBin.number)
-            // parBin.contracts is not written. i.e. contains previous result
 
             dealerPar(res, parStr, dealer[0], vul[0])
             println(parStr)

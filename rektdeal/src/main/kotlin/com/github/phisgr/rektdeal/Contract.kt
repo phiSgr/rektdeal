@@ -1,9 +1,12 @@
 package com.github.phisgr.rektdeal
 
 import com.github.phisgr.dds.N
+import com.github.phisgr.dds.Seats
 import com.github.phisgr.dds.Strain
 
 private val pattern = Regex("([1-7])([CDHSN])(X{0,2})", RegexOption.IGNORE_CASE)
+
+data class ScoredContract(val contract: Contract, val declarer: Seats, val score: Int, val tricks: Int)
 
 data class Contract(val level: Int, val strain: Strain, val doubled: Int) {
     init {
@@ -14,7 +17,7 @@ data class Contract(val level: Int, val strain: Strain, val doubled: Int) {
     // Workaround for not having code before constructor call.
     private constructor(matchResult: MatchResult) : this(
         matchResult.groupValues[1].toInt(),
-        Strain.fromChar(matchResult.groupValues[2].single()),
+        Strain.fromChar(matchResult.groupValues[2].single().uppercaseChar()),
         doubled = matchResult.groupValues[3].length
     )
 
@@ -61,4 +64,7 @@ data class Contract(val level: Int, val strain: Strain, val doubled: Int) {
             }
         }
     }
+
+    override fun toString(): String = "$level$strain${"X".repeat(doubled)}"
+
 }

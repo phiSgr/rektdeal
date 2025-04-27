@@ -5,6 +5,7 @@ import com.github.phisgr.dds.Deal
 import com.github.phisgr.dds.SUITS
 import java.lang.foreign.Arena
 import kotlin.math.max
+import kotlin.reflect.KProperty1
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -61,9 +62,59 @@ class TestCards {
         }
     }
 
+    fun Boolean.toInt() = if (this) 1 else 0
+
     /**
      * [Redeal reference implementation](
-     * https://github.com/anntzer/redeal/blob/ab4eb3f30d704b58831f6692a9977be08cf4c536/redeal/redeal.py#L510)
+     * https://github.com/anntzer/redeal/blob/e2e81a477fd31ae548a340b5f0f380594d3d0ad6/redeal/redeal.py#L481)
+     */
+    private fun losersRedeal(suitHolding: SuitHolding): Double {
+        val cardSet = suitHolding.map { c -> c.encoded }.toSet()
+
+        val (a, k, q, j, t) = (14 downTo 10).toList()
+
+        var losers = 0.0
+        if (suitHolding.size == 0) return losers
+        if (a !in cardSet) losers += 1
+        if (suitHolding.size >= 2 && k !in cardSet) losers += 1
+        if (suitHolding.size >= 3) {
+            if (q !in cardSet) {
+                losers += 1
+            } else if (losers == 2.0 && j !in cardSet && t !in cardSet) {
+                losers += 0.5
+            }
+        }
+
+//        losers += (suitHolding.size >= 1 && a !in cardSet).toInt()
+//        losers += (suitHolding.size >= 2 && k !in cardSet).toInt()
+//        losers += (suitHolding.size >= 3).toInt() *
+//            (if (q !in cardSet) {
+//                1.0
+//            } else {
+//                (losers == 2.0 && j !in cardSet && t !in cardSet).toInt() / 2.0
+//            })
+
+        return losers
+    }
+
+    /**
+     * [Redeal reference implementation](
+     * https://github.com/anntzer/redeal/blob/96c18fb2963b489d733a37237c5b72ac80689ad6/redeal/redeal.py#L532)
+     */
+    private fun newLtcRedeal(suitHolding: SuitHolding): Double {
+        val cardSet = suitHolding.map { c -> c.encoded }.toSet()
+
+        val (a, k, q) = (14 downTo 12).toList()
+
+        return 1.5 * (suitHolding.size >= 1 && a !in cardSet).toInt() +
+            1.0 * (suitHolding.size >= 2 && k !in cardSet).toInt() +
+            0.5 * (suitHolding.size >= 3 && q !in cardSet).toInt()
+    }
+
+
+    /**
+     * [Redeal reference implementation](
+     * https://github.com/anntzer/redeal/blob/96c18fb2963b489d733a37237c5b72ac80689ad6/redeal/redeal.py#L544)
      */
     private fun playingTricksRedeal(suitHolding: SuitHolding): Double {
         val lenPt = max(suitHolding.size - 3, 0).toDouble()
@@ -89,8 +140,10 @@ class TestCards {
         }
     }
 
-    @Test
-    fun testPlayingTricksRandom() {
+    private fun <T> testRandom(
+        referenceImpl: (SuitHolding) -> T,
+        value: KProperty1<SuitHolding, T>,
+    ) {
         val cards = newDeck()
         repeat(10_000) {
             cards.shuffle()
@@ -99,7 +152,7 @@ class TestCards {
                 SUITS.forEach { suit ->
                     val holding = hand[suit]
                     try {
-                        assertEquals(playingTricksRedeal(holding), holding.playingTricks)
+                        assertEquals(referenceImpl(holding), value.get(holding))
                     } catch (e: Throwable) {
                         println(holding)
                         throw e
@@ -109,9 +162,11 @@ class TestCards {
         }
     }
 
+    private fun <T> testHonours(
+        referenceImpl: (SuitHolding) -> T,
+        value: KProperty1<SuitHolding, T>,
+    ) {
 
-    @Test
-    fun testPlayingTricks() {
         val cards = newDeck()
         // using north.spades because of no extra offset/bits
         val spades = cards.north.spades
@@ -119,7 +174,7 @@ class TestCards {
         fun check() {
             spades.reset()
             println(spades)
-            assertEquals(playingTricksRedeal(spades), spades.playingTricks)
+            assertEquals(referenceImpl(spades), value(spades))
         }
 
         repeat(32) { honourBits ->
@@ -139,5 +194,23 @@ class TestCards {
                 check()
             }
         }
+    }
+
+    @Test
+    fun testPlayingTricks() {
+        testRandom(::playingTricksRedeal, SuitHolding::playingTricks)
+        testHonours(::playingTricksRedeal, SuitHolding::playingTricks)
+    }
+
+    @Test
+    fun testLosers() {
+        testRandom(::losersRedeal, SuitHolding::losers)
+        testHonours(::losersRedeal, SuitHolding::losers)
+    }
+
+    @Test
+    fun testNewLtc() {
+        testRandom(::newLtcRedeal, SuitHolding::newLtc)
+        testHonours(::newLtcRedeal, SuitHolding::newLtc)
     }
 }

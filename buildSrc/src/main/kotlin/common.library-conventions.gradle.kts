@@ -35,10 +35,14 @@ tasks.test {
     environment("DDS4J_LOAD", "LOAD_LIBRARY")
 }
 
+dependencies {
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
 group = "com.github.phisgr"
 version = when (name) {
-    "dds4j" -> "0.1.0"
-    "rektdeal" -> "0.1.0"
+    "dds4j" -> "0.2.0"
+    "rektdeal" -> "0.2.0"
     else -> throw IllegalStateException("unknown project $name")
 }
 
@@ -63,15 +67,12 @@ tasks.register("printVersion") {
     }
 }
 
-task<JavaExec>("runTestMainClass") { // test equivalent for application
+tasks.register<JavaExec>("runTestMainClass") { // test equivalent for application
     dependsOn("testClasses")
     classpath = sourceSets["test"].runtimeClasspath
     (project.properties["testMainClass"] as String?)?.let {
         mainClass.set(it)
     }
 
-    jvmArgs = listOf(
-        "--enable-native-access=ALL-UNNAMED",
-        "--enable-preview"
-    )
+    jvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }

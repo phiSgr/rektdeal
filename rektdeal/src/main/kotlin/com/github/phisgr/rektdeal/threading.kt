@@ -1,26 +1,27 @@
 package com.github.phisgr.rektdeal
 
+import com.github.phisgr.dds.DdTableResults
 import com.github.phisgr.dds.FutureTricks
+import com.github.phisgr.dds.ParResultsMaster
 import com.github.phisgr.dds.threadCount
-import com.github.phisgr.rektdeal.internal.ONE_MIL
-import com.github.phisgr.rektdeal.internal.dateFormat
-import com.github.phisgr.rektdeal.internal.gte
+import com.github.phisgr.rektdeal.internal.*
 import java.lang.foreign.Arena
 import java.time.LocalDateTime
-import java.util.concurrent.Callable
-import java.util.concurrent.StructuredTaskScope
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.function.Function
+import java.util.concurrent.atomic.AtomicReference
 import com.github.phisgr.dds.Deal as DdsDeal
 
 /**
- * Thread-local object for reusing [DdsDeal] and [futureTricks]. See [solverResources].
+ * Thread-local object for reusing [DdsDeal] and [FutureTricks]. See [solverResources].
  */
 class SolverResources(val threadIndex: Int, val arena: Arena) {
     // Using `LazyThreadSafetyMode.NONE` for DDS wrapper objects because this class is meant to be thread-local.
 
     val deal: DdsDeal by lazy(LazyThreadSafetyMode.NONE) { DdsDeal(arena) }
     val futureTricks: FutureTricks by lazy(LazyThreadSafetyMode.NONE) { FutureTricks(arena) }
+    val ddTableResults: DdTableResults by lazy(LazyThreadSafetyMode.NONE) { DdTableResults(arena) }
+    val parResultsMaster: ParResultsMaster by lazy(LazyThreadSafetyMode.NONE) { ParResultsMaster(arena) }
 }
 
 val solverResources = ThreadLocal<SolverResources>()
@@ -42,7 +43,6 @@ fun <T> maybeUseResources(action: (DdsDeal, FutureTricks, threadIndex: Int) -> T
             threadIndex = resources.threadIndex
             deal = resources.deal
             futureTricks = resources.futureTricks
-            arena = null
         }
         return action(deal, futureTricks, threadIndex)
     } finally {
@@ -50,6 +50,9 @@ fun <T> maybeUseResources(action: (DdsDeal, FutureTricks, threadIndex: Int) -> T
     }
 }
 
+/**
+ * Prints in the format "HH:mm:ss $[s]"
+ */
 fun log(s: Any?) {
     println("${dateFormat.format(LocalDateTime.now())} $s")
 }
@@ -80,39 +83,25 @@ inline fun <T> multiThread(
     crossinline accept: (Deal) -> Boolean = { true },
     crossinline action: (dealCount: Int, Deal, state: T) -> Unit,
 ): List<T> {
-    // given the time taken to generate and solve a deal,
+    // given the time taken to solve a deal,
     // contention should not be a big problem
     val dealCounter = AtomicInteger()
+    return launchThreadsWithResources(threadCount = threadCount) {
+        val d = dealer()
+        val s = state()
 
-    return StructuredTaskScope.ShutdownOnFailure(
-        null,
-        // default is ofVirtual,
-        // but we're not doing IO to benefit from that
-        Thread.ofPlatform().factory()
-    ).use { scope ->
-        val states = List(threadCount) { threadIndex ->
-            scope.fork(object : ResourceCallable<T>(threadIndex, dealCounter) {
-                override fun action(): T {
-                    val d = dealer()
-                    val s = state()
-
-                    while (!counter.gte(count)) {
-                        if (Thread.interrupted()) break
-                        val dealt = d(maxTry = ONE_MIL) { accept(it) }
-                        if (dealt != null) {
-                            val current = counter.getAndIncrement()
-                            if (current in 0..<count) { // guards against overflow
-                                action(current + 1, dealt, s)
-                            }
-                        }
-                    }
-
-                    return s
+        while (inRange(dealCounter.get(), count)) {
+            if (Thread.interrupted()) break
+            val dealt = d(maxTry = ONE_MIL) { accept(it) }
+            if (dealt != null) {
+                val current = dealCounter.getAndIncrement()
+                if (inRange(current, count)) { // guards against overflow
+                    action(current + 1, dealt, s)
                 }
-            })
+            }
         }
-        scope.join().throwIfFailed(Function.identity())
-        states.map { it.get() }
+
+        s
     }
 }
 
@@ -135,13 +124,28 @@ inline fun multiThread(
     }
 }
 
-abstract class ResourceCallable<T>(private val threadIndex: Int, protected val counter: AtomicInteger) : Callable<T> {
-    override fun call(): T {
-        return Arena.ofConfined().use { arena ->
-            solverResources.set(SolverResources(threadIndex, arena))
-            action()
-        }
+inline fun <T> launchThreadsWithResources(
+    threadCount: Int,
+    // idk, maybe you have 96 threads and want each task to only take 8 threads
+    // then you say useResourcesMultiThreaded(threadCount * 8, offset = 8 * i) { ...
+    offset: Int = 0,
+    crossinline action: () -> T,
+): List<T> {
+    require(threadCount + offset <= com.github.phisgr.dds.threadCount) {
+        "Thread index ${threadCount + offset - 1} is out of range."
     }
 
-    abstract fun action(): T
+    val throwable = AtomicReference<Throwable?>()
+
+    val futures = Executors.newThreadPerTaskExecutor(Thread.ofPlatform().factory()).use { executor ->
+        List(threadCount) { threadIndex ->
+            safeSubmit(executor, object : ResourceCallable<T>(threadIndex + offset, throwable, executor) {
+                override fun action(): T {
+                    return action()
+                }
+            })
+        }
+    }
+    handleError(throwable)
+    return futures.map { it.get() }
 }

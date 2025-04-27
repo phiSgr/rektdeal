@@ -6,8 +6,6 @@ import dds.futureTricks;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 import static com.github.phisgr.dds.Dds.solveBoard;
@@ -17,7 +15,7 @@ import static example.Dds4jKt.dds4jKotlin;
 
 public class Dds4j {
 
-    void main() {
+    public static void main(String[] args) {
         dds4j();
         System.out.println();
 
@@ -30,7 +28,7 @@ public class Dds4j {
         dds4jKotlin();
     }
 
-    void rawDds() {
+    public static void rawDds() {
         Arena arena = Arena.global();
         MemorySegment deal = dealPBN.allocate(arena);
         dealPBN.trump(deal, 0);
@@ -49,7 +47,7 @@ public class Dds4j {
         System.out.println("The double dummy tricks for declarer is " + trickCount);
     }
 
-    void dds4jPBN() {
+    public static void dds4jPBN() {
         Arena arena = Arena.global();
         DealPBN deal = new DealPBN(arena);
         deal.setTrump(Suit.S);
@@ -62,11 +60,11 @@ public class Dds4j {
         solveBoardPBN(deal, -1, 1, 1, futureTricks, 0);
 
         System.out.println(futureTricks);
-        // TODO: change it back to STR. when we can `--enable-preview`
+        // TODO: change it back to string interpolation when possible
         System.out.println("The double dummy tricks for declarer is " + (13 - futureTricks.getScore().get(0)));
     }
 
-    void dds4j() {
+    public static void dds4j() {
         Arena arena = Arena.global();
         Deal deal = new Deal(arena);
         deal.setTrump(Suit.S);

@@ -203,6 +203,9 @@ class DdTable(val memory: MemorySegment) {
     operator fun get(strain: Strain, hand: Direction): Int =
         ddTableResults.resTable(memory, strain.encoded.toLong(), hand.encoded.toLong())
 
+    operator fun set(strain: Strain, hand: Direction, tricks: Int) =
+        ddTableResults.resTable(memory, strain.encoded.toLong(), hand.encoded.toLong(), tricks)
+
     override fun toString(): String {
         return formatString.format(
             *listOf(NORTH, SOUTH, EAST, WEST).flatMap { direction ->

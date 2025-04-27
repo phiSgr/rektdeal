@@ -8,80 +8,50 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class TestContract {
+    private fun testContract(contractString: String, vulScores: List<Int>, nonVulScores: List<Int>) {
+        val contract = Contract(contractString)
+        assertEquals(contract.toString(), contractString.uppercase())
+
+        listOf(vulScores to true, nonVulScores to false).forEach { (scores, vul) ->
+            assertEquals(
+                scores,
+                (0..13).map { tricks -> contract.score(tricks, vul) }
+            )
+        }
+    }
+
+
     @Test
     fun testScore() {
-        val vul = listOf(true, false)
-        Contract("3N").let { contract ->
-            assertEquals(
-                listOf(
-                    -900, -450, -800, -400, -700, -350, -600, -300, -500,
-                    -250, -400, -200, -300, -150, -200, -100, -100, -50,
-                    600, 400, 630, 430, 660, 460, 690, 490, 720, 520,
-                ),
-                (0..13).flatMap { tricks ->
-                    vul.map { vul ->
-                        contract.score(tricks, vul)
-                    }
-                }
-            )
-        }
+        testContract(
+            "3N",
+            listOf(-900, -800, -700, -600, -500, -400, -300, -200, -100, 600, 630, 660, 690, 720),
+            listOf(-450, -400, -350, -300, -250, -200, -150, -100, -50, 400, 430, 460, 490, 520)
+        )
 
-        Contract("1NXX").let { contract ->
-            assertEquals(
-                listOf(
-                    -4000, -3400, -3400, -2800, -2800, -2200, -2200, -1600, -1600, -1000, -1000, -600, -400, -200,
-                    760, 560, 1160, 760, 1560, 960, 1960, 1160, 2360, 1360, 2760, 1560, 3160, 1760
-                ),
-                (0..13).flatMap { tricks ->
-                    vul.map { vul ->
-                        contract.score(tricks, vul)
-                    }
-                }
-            )
-        }
+        testContract(
+            "1nxx",
+            listOf(-4000, -3400, -2800, -2200, -1600, -1000, -400, 760, 1160, 1560, 1960, 2360, 2760, 3160),
+            listOf(-3400, -2800, -2200, -1600, -1000, -600, -200, 560, 760, 960, 1160, 1360, 1560, 1760)
+        )
 
+        testContract(
+            "6dX",
+            listOf(-3500, -3200, -2900, -2600, -2300, -2000, -1700, -1400, -1100, -800, -500, -200, 1540, 1740),
+            listOf(-3200, -2900, -2600, -2300, -2000, -1700, -1400, -1100, -800, -500, -300, -100, 1090, 1190),
+        )
 
-        Contract("6DX").let { contract ->
-            assertEquals(
-                listOf(
-                    -3500, -3200, -3200, -2900, -2900, -2600, -2600, -2300, -2300, -2000,
-                    -2000, -1700, -1700, -1400, -1400, -1100, -1100, -800, -800, -500,
-                    -500, -300, -200, -100, 1540, 1090, 1740, 1190
-                ),
-                (0..13).flatMap { tricks ->
-                    vul.map { vul ->
-                        contract.score(tricks, vul)
-                    }
-                })
-        }
+        testContract(
+            "7H",
+            listOf(-1300, -1200, -1100, -1000, -900, -800, -700, -600, -500, -400, -300, -200, -100, 2210),
+            listOf(-650, -600, -550, -500, -450, -400, -350, -300, -250, -200, -150, -100, -50, 1510),
+        )
 
-
-        Contract("7H").let { contract ->
-            assertEquals(
-                listOf(
-                    -1300, -650, -1200, -600, -1100, -550, -1000, -500, -900, -450, -800, -400, -700, -350,
-                    -600, -300, -500, -250, -400, -200, -300, -150, -200, -100, -100, -50,
-                    2210, 1510
-                ),
-                (0..13).flatMap { tricks ->
-                    vul.map { vul ->
-                        contract.score(tricks, vul)
-                    }
-                })
-        }
-
-        Contract("2S").let { contract ->
-            assertEquals(
-                listOf(
-                    -800, -400, -700, -350, -600, -300, -500, -250, -400, -200, -300, -150, -200, -100, -100, -50,
-                    110, 110, 140, 140, 170, 170, 200, 200, 230, 230, 260, 260
-                ),
-                (0..13).flatMap { tricks ->
-                    vul.map { vul ->
-                        contract.score(tricks, vul)
-                    }
-                })
-        }
+        testContract(
+            "2S",
+            listOf(-800, -700, -600, -500, -400, -300, -200, -100, 110, 140, 170, 200, 230, 260),
+            listOf(-400, -350, -300, -250, -200, -150, -100, -50, 110, 140, 170, 200, 230, 260),
+        )
     }
 
     @Test

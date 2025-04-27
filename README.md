@@ -15,35 +15,32 @@ ReKtDeal is thus my rewrite of Redeal using another language: Kotlin.
 The deal generation in ReKtDeal is often 100x faster than Redeal,
 and that's before multi-threading.
 
-ReKtDeal runs on JVM 22.
+ReKtDeal runs on JVM 22+.
 The [embedded double dummy solver](./dds4j) is pre-built for
 Windows/Linux x86_64, macOS x86_64/Apple Silicon.
 I believe this covers most users.
 See the [instructions](./dds4j#custom-binary) if your system is not included.
 
-The introduction paragraph is adapted from the [README of Redeal](
+The introduction paragraph was adapted from the [README of Redeal](
 https://github.com/anntzer/redeal/blob/main/README.rst).
-The almost identical wording is inspired by the recent news.
+The almost identical wording was inspired by some then-recent news.
 
 ## Setup
 
-Fundamentally ReKtDeal is just a JVM library.
-Using it is no different from any other Java Library.
+Fundamentally, ReKtDeal is just a Kotlin library.
+Using it is no different from any other library from Maven.
 
 <details>
   <summary>E.g. Gradle (Kotlin DSL)</summary>
 
 ```kotlin
 dependencies {
-    implementation("com.github.phisgr:rektdeal:0.1.0")
+    implementation("com.github.phisgr:rektdeal:0.2.0")
 }
 
 // Set the JVM args
 application {
-    applicationDefaultJvmArgs = listOf(
-        "--enable-native-access=ALL-UNNAMED",
-        "--enable-preview"
-    )
+    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 ```
 
@@ -53,7 +50,7 @@ But I imagine most uses are going to be interactive.
 For that [Kotlin Jupyter](https://github.com/Kotlin/kotlin-jupyter) can be used.
 
 ```kotlin
-@file:DependsOn("com.github.phisgr:rektdeal:0.1.0")
+@file:DependsOn("com.github.phisgr:rektdeal:0.2.0")
 ```
 
 # Talk is cheap. Show me the code.

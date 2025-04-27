@@ -95,6 +95,9 @@ class Cards(val memory: MemorySegment) {
 
 class DdTable(val memory: MemorySegment) {
     operator fun get(strain: Strain, hand: Direction): Int = STUB()
+    operator fun set(strain: Strain, hand: Direction, tricks: Int) {
+        STUB()
+    }
 }
 
 enum class Vulnerability {

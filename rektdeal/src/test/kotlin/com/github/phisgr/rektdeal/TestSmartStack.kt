@@ -2,6 +2,7 @@ package com.github.phisgr.rektdeal
 
 import com.github.phisgr.dds.Rank
 import com.github.phisgr.dds.SUITS
+import com.github.phisgr.logTimeMs
 import com.github.phisgr.rektdeal.internal.flatten
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.Test
@@ -73,9 +74,11 @@ class TestSmartStack {
 
     @Test
     fun testEverything() {
-        val smartStack = SmartStack(Shape("xxxx"), Evaluator.hcp, 0..37)
+        val shape = logTimeMs({ "The everything shape took $it" }) { Shape("xxxx") }
+        val smartStack = SmartStack(shape, Evaluator.hcp, 0..37)
         // the prepare step took 3 minutes in Python redeal
-        smartStack()
+        logTimeMs({ "Prepare and first hand took $it" }) { smartStack() }
+        logTimeMs({ "Afterwards, a hand took $it" }) { smartStack() }
         val cumSum = cumSumField.get(smartStack) as LongArray
 
         fun hcpRange(l: Int) = when (l) {

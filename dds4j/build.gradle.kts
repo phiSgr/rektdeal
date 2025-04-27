@@ -1,8 +1,7 @@
 import com.github.phisgr.dds.GenerateTask
 import com.github.phisgr.rektdeal.Publishing.configure
-import io.github.krakowski.jextract.JextractPlugin
 import io.github.krakowski.jextract.JextractTask
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("common.library-conventions")
@@ -14,8 +13,8 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "21"
+kotlin {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 }
 
 java {
@@ -41,6 +40,18 @@ kotlin {
     }
 }
 
+tasks.dokkaHtml.configure {
+    dokkaSourceSets {
+        configureEach {
+            // include generated functions (e.g. solveBoard) and classes (e.g. DdTableDeal)
+            suppressGeneratedFiles.set(false)
+
+            // but hide the low level code from jextract
+            suppressedFiles.from(tasks.withType<JextractTask>().map { it.outputDir })
+        }
+    }
+}
+
 tasks.withType<JextractTask> {
     toolchain.set(
         project.properties["jextractPath"] as String?
@@ -57,7 +68,12 @@ tasks.withType<JextractTask> {
 }
 
 publishing {
-    configure(project, "DDS4J", "Wrapper around the Double Dummy Solver C++ Library.")
+    configure(
+        project,
+        "DDS4J",
+        "Wrapper around the Double Dummy Solver C++ Library.",
+        "https://github.com/phiSgr/rektdeal/tree/main/dds4j"
+    )
 }
 
 tasks.named<JavaExec>("runTestMainClass") {

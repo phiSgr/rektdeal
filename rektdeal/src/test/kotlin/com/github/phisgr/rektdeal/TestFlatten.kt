@@ -39,7 +39,7 @@ fun toLengths(flattened: Int): Lengths {
     check(h >= 0)
     check(d >= 0)
 
-    return Lengths(s = first, h, d)
+    return Lengths(s = first, h, d, c = 13 - `third - 2`)
 }
 
 class TestFlatten {
@@ -73,7 +73,7 @@ class TestFlatten {
 
 }
 
-operator fun Shape.contains(lengths: Lengths): Boolean = contains(lengths.s, lengths.h, lengths.d)
+operator fun Shape.contains(lengths: Lengths): Boolean = contains(listOf(lengths.s, lengths.h, lengths.d, lengths.c))
 data class Lengths(val s: Int, val h: Int, val d: Int) {
     val c: Int get() = 13 - s - h - d
 
@@ -85,7 +85,7 @@ data class Lengths(val s: Int, val h: Int, val d: Int) {
     }
 
     constructor(s: Int, h: Int, d: Int, c: Int) : this(s, h, d) {
-        require(c == this.c)
+        require(c == this.c) { "$s $h $d $c" }
     }
 
     fun flatten(): Int = flatten(s, h, d)

@@ -3,6 +3,7 @@ package com.github.phisgr.rektdeal
 import com.github.phisgr.dds.Direction
 import com.github.phisgr.rektdeal.internal.ReadOnlyIntArray
 import com.github.phisgr.rektdeal.internal.sumOf
+import com.github.phisgr.rektdeal.internal.validateOpeningLeadPreDeals
 import java.util.*
 import java.util.function.IntBinaryOperator
 
@@ -13,7 +14,7 @@ import java.util.function.IntBinaryOperator
  */
 inline fun openingLead(
     count: Int,
-    hand: PreDealHand,
+    hand: PreDealCards,
     leader: Direction,
     extraPreDeals: Map<Direction, PreDeal> = emptyMap(),
     crossinline accept: (Deal) -> Boolean,
@@ -120,7 +121,7 @@ $mp"""
  */
 inline fun openingLead(
     count: Int,
-    hand: PreDealHand,
+    hand: PreDealCards,
     leader: Direction,
     extraPreDeals: Map<Direction, PreDeal> = emptyMap(),
     crossinline accept: (Deal) -> Boolean,
@@ -158,7 +159,7 @@ inline fun openingLead(
  */
 inline fun <T> openingLead(
     count: Int,
-    hand: PreDealHand,
+    hand: PreDealCards,
     leader: Direction,
     extraPreDeals: Map<Direction, PreDeal> = emptyMap(),
     crossinline state: () -> T,
@@ -168,10 +169,7 @@ inline fun <T> openingLead(
     contract: Contract,
     crossinline reducer: (T, T) -> T,
 ): T {
-    val preDeals: Map<Direction, PreDeal> = extraPreDeals.toMutableMap().also {
-        val oldValue = it.put(leader, hand)
-        require(oldValue == null) { "extraPreDeals should not contain leader." }
-    }
+    val preDeals = validateOpeningLeadPreDeals(leader, hand, extraPreDeals)
 
     val strain = contract.strain
     return multiThread(

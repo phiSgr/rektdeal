@@ -1,10 +1,8 @@
 package com.github.phisgr.rektdeal
 
 import org.junit.jupiter.api.assertThrows
-import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 
 class TestDealer {
@@ -65,8 +63,8 @@ class TestDealer {
             val sd = sdBinomial(n, p = p)
             println("S.D. of count for (05) distribution $sd")
 
-            assertTrue(abs((lengths[0] - expectedValue) / sd) < 5)
-            assertTrue(abs((lengths[3] - expectedValue) / sd) < 5)
+            assertNotTooDifferent(expected = expectedValue, actual = lengths[0].toDouble(), sd = sd)
+            assertNotTooDifferent(expected = expectedValue, actual = lengths[3].toDouble(), sd = sd)
         }
 
         run {
@@ -76,8 +74,8 @@ class TestDealer {
             println("S.D. of count for (41) distribution $sd")
 
             // at most 0.57% off
-            assertTrue(abs((lengths[1] - expectedValue) / sd) < 5)
-            assertTrue(abs((lengths[2] - expectedValue) / sd) < 5)
+            assertNotTooDifferent(expected = expectedValue, actual = lengths[1].toDouble(), sd = sd)
+            assertNotTooDifferent(expected = expectedValue, actual = lengths[2].toDouble(), sd = sd)
         }
 
         println(lengths.toList())

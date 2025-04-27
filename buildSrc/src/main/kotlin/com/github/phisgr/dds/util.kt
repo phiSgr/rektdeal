@@ -2,7 +2,6 @@ package com.github.phisgr.dds
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
-import org.gradle.configurationcache.extensions.capitalized
 
 val ws = "[\\n\\r\\s]+" //whitespace
 
@@ -72,7 +71,7 @@ val structConfigs = mapOf(
     "solvedPlays" to StructConfig(limitField = "noOfBoards"),
     "boards" to StructConfig(getterOnly = false, limitField = "noOfBoards"),
     "boardsPBN" to StructConfig(getterOnly = false, limitField = "noOfBoards"),
-    "parResultsMaster" to StructConfig(limitField = "number"),
+    "parResultsMaster" to StructConfig(limitField = "if (score == 0) 0 else number"),
     "parResultsDealer" to StructConfig(limitField = "number"),
     "contractType" to StructConfig(
         typeOverride = mapOf(
@@ -81,7 +80,8 @@ val structConfigs = mapOf(
     )
 )
 
-fun toKtName(jClassName: String): String = structConfigs[jClassName]?.name ?: jClassName.capitalized()
+fun toKtName(jClassName: String): String =
+    structConfigs[jClassName]?.name ?: jClassName.replaceFirstChar(Char::uppercaseChar)
 
 const val DDS4J_PACKAGE = "com.github.phisgr.dds"
 fun dds4jPackage(className: String): ClassName = ClassName(DDS4J_PACKAGE, className)

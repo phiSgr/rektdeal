@@ -17,7 +17,7 @@ But using them in Java is awkward, so they were moved to Java files.
 ## Usage
 
 ```kotlin
-implementation("com.github.phisgr:dds4j:0.1.0")
+implementation("com.github.phisgr:dds4j:0.2.0")
 ```
 
 ### Type Safety
@@ -40,11 +40,11 @@ dealPBN.remainCards(deal)
 
 MemorySegment ftMemory = futureTricks.allocate(arena);
 int returnCode = SolveBoardPBN(deal, -1, 1, 1, ftMemory, 0);
-if (returnCode != 1) throw new IllegalArgumentException(STR."Got return code \{returnCode}");
+if (returnCode != 1) throw new IllegalArgumentException("Got return code " + returnCode);
 
 int trickCount = 13 - futureTricks.score(ftMemory, 0);
 
-System.out.println(STR."The double dummy tricks for declarer is \{trickCount}" );
+System.out.println("The double dummy tricks for declarer is " + trickCount);
 ```
 
 </details>
@@ -63,7 +63,7 @@ FutureTricks futureTricks = new FutureTricks(arena);
 solveBoardPBN(deal, -1, 1, 1, futureTricks, 0);
 
 System.out.println(futureTricks);
-System.out.println(STR."The double dummy tricks for declarer is \{13 - futureTricks.getScore().get(0)}" );
+System.out.println("The double dummy tricks for declarer is " + (13 - futureTricks.getScore().get(0)));
 ```
 
 Everything is well typed, you will not make the silly mistake of
@@ -77,8 +77,8 @@ It also checks the return code for you.
 val deal = DealPBN(arena)
 deal.trump = S // property access syntax
 deal.first = NORTH
-deal.currentTrickSuit.memory.clear()
-deal.currentTrickRank.memory.clear()
+deal.currentTrickSuit.clear()
+deal.currentTrickRank.clear()
 deal.remainCards = "N:QJ6.K652.J85.T98 873.J97.AT764.Q4 K5.T83.KQ9.A7652 AT942.AQ4.32.KJ3"
 
 val futureTricks = FutureTricks(arena)
@@ -104,9 +104,10 @@ acquire the correct lock(s) before executing native methods.
 ### Documentation
 
 Since this is just a thin wrapper, I hope the [DDS documentation](
-https://github.com/dds-bridge/dds/blob/develop/doc/dll-description.md) will suffice.
+https://github.com/dds-bridge/dds/blob/develop/doc/DLL-dds_x.pdf) will suffice.
 For example, you can refer to it for the meanings of the
-`target`, `solutions`, and `mode` arguments above.
+[`target`, `solutions`, and `mode` arguments](
+https://htmlpreview.github.io/?https://github.com/dds-bridge/dds/blob/develop/doc/DLL-dds_x.htm#SolveBoard) above.
 
 ## Custom Binary
 

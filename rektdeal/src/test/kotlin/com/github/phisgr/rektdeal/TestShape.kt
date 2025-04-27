@@ -26,7 +26,7 @@ class TestShape {
             (0..13).forEach { s ->
                 (0..(13 - s)).forEach { h ->
                     (0..(13 - s - h)).forEach { d ->
-                        val lengths = Lengths(s, h, d)
+                        val lengths = Lengths(s, h, d, 13 - s - h - d)
                         assertEquals(
                             cond(s, h, d, lengths.c),
                             lengths in shape
@@ -48,6 +48,7 @@ class TestShape {
 
         logTimeMs { Shape("5(332)") }.let { shape ->
             println(shape)
+            assertEquals(Shape("5332") + Shape("5323") + Shape("5233"), shape)
             assertEquals(3, shape.count)
             assertTrue(Lengths(3, 3, 2, 5) !in shape)
             assertTrue(Lengths(5, 2, 3, 3) in shape)
@@ -102,7 +103,7 @@ class TestShape {
         // but the permutation code does not handle repetitions
         // so repeated 24 times
         // Python redeal took 5 seconds
-        logTimeMs { Shape("(xxxx)") }.let { shape ->
+        val everything = logTimeMs { Shape("(xxxx)") }.also { shape ->
             println(shape)
             assertEquals(560, shape.count)
         }
@@ -112,6 +113,7 @@ class TestShape {
         }.let { shape ->
             println(shape)
             assertEquals(560, shape.count)
+            assertEquals(everything, shape)
         }
     }
 
@@ -120,6 +122,7 @@ class TestShape {
         assertThrows<IllegalArgumentException> { Shape("5(332") }
         assertThrows<IllegalArgumentException> { Shape("5678") }
         assertThrows<IllegalArgumentException> { Shape("555x") }
+        assertThrows<IllegalArgumentException> { Shape("33331") }
     }
 
     @Test
@@ -128,6 +131,27 @@ class TestShape {
         assertEquals(34, semiBalNo5cM.count)
         assertContentEquals(intArrayOf(4, 4, 6, 6), semiBalNo5cM.maxLengths)
         assertContentEquals(intArrayOf(2, 2, 2, 2), semiBalNo5cM.minLengths)
+        assertEquals(
+            Shape { s, h, d, c ->
+                intArrayOf(s, h, d, c).all { it in 2..6 } && s <= 4 && h <= 4
+            },
+            semiBalNo5cM
+        )
         println(semiBalNo5cM)
+    }
+
+    @Test
+    fun testIntersect() {
+        val balWith5cM = Shape.balanced.intersect(Shape { s, h, _, _ -> s >= 5 || h >= 5 })
+        assertEquals(
+            Shape { s, h, d, _ ->
+                Shape.balanced.contains(s, h, d) && (s == 5 || h == 5)
+            },
+            balWith5cM
+        )
+        assertEquals(6, balWith5cM.count)
+        assertContentEquals(intArrayOf(5, 5, 3, 3), balWith5cM.maxLengths)
+        assertContentEquals(intArrayOf(2, 2, 2, 2), balWith5cM.minLengths)
+        println(balWith5cM)
     }
 }

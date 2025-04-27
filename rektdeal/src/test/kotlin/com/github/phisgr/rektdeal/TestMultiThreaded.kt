@@ -3,14 +3,17 @@ package com.github.phisgr.rektdeal
 import com.github.phisgr.dds.N
 import com.github.phisgr.dds.Rank
 import com.github.phisgr.dds.SOUTH
-import com.github.phisgr.dds.threadCount
+import com.github.phisgr.dds.WEST
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.assertTimeoutPreemptively
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicIntegerArray
-import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertContains
-import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.measureTime
+import kotlin.time.toJavaDuration
 
 
 class TestMultiThreaded {
@@ -78,7 +81,7 @@ class TestMultiThreaded {
     @Test
     fun test8z15() {
         val i = AtomicInteger()
-        val n = 1000_000
+        val n = 1_000_000
 
         val counts = multiThread(
             count = n,
@@ -115,12 +118,15 @@ class TestMultiThreaded {
 
         // Took half an hour to get these numbers from the Python script
         // Single-threaded, this test takes about 9 seconds
-        // with 12 threads, about 2 seconds - when the work per deal is cheap, the shared counter memory access cost becomes significant
-        val diff = mapOf(15 to 411502, 16 to 334853, 17 to 253645).mapValues { (hcp, count) ->
-            (table[hcp]!! - count) / sdBinomial(n = n, np = count)
+        // with 6C12T, about 2 seconds - when the work per deal is cheap, the shared counter memory access cost becomes significant
+        mapOf(15 to 411502, 16 to 334853, 17 to 253645).forEach { (hcp, count) ->
+            print("$hcp HCP")
+            assertNotTooDifferent(
+                expected = count.toDouble(),
+                actual = table[hcp]!!.toDouble(),
+                sd = sdBinomial(n = n, np = count)
+            )
         }
-        println(diff)
-        diff.forEach { (_, d) -> assertTrue(abs(d) < 5) } // 5 sigma failure, at most 0.25% away
     }
 
     class Bleh : Throwable()
@@ -143,6 +149,20 @@ class TestMultiThreaded {
         assertContains(9..500, count.get())
     }
 
+    // Turn your computer into a space heater with this one simple trick!
+    @EnabledIfEnvironmentVariable(named = "TEST_OVERFLOW", matches = "TRUE")
+    @Test
+    fun testOverflow() {
+        assertTimeoutPreemptively(5.minutes.toJavaDuration()) {
+            val time = measureTime {
+                multiThread(
+                    count = Int.MAX_VALUE,
+                    action = { _, _ -> }
+                )
+            }
+            println("Took $time to reach int overflow.")
+        }
+    }
 
     @Test
     fun testMtSolving() {
@@ -170,6 +190,24 @@ class TestMultiThreaded {
         println((0..13).sumOf {
             Contract("1N").score(it, vulnerable = false) * trickCounts[it]
         } / n.toDouble())
+    }
+
+    // 100 hands is not enough, but this is just a test case
+    // for the full analysis, see examples/opening_lead.ipynb
+    @Test
+    fun testOpeningLead() {
+        val southSmartStack = SmartStack(Shape("33(43)") + Shape("(32)(53)"), Evaluator.hcp, 15..17)
+        val stat = openingLead(
+            count = if (shortTest) 10 else 100,
+            hand = PreDealHand("QT T32 JT8732 32"),
+            extraPreDeals = mapOf(SOUTH to southSmartStack), // this parameter is available in the other version as well
+            leader = WEST,
+            accept = { deal ->
+                (deal.north.hearts.size == 4 || deal.north.spades.size == 4) && deal.north.hcp in 9..11
+            },
+            contract = Contract("3N"),
+        )
+        println(stat)
     }
 
 }

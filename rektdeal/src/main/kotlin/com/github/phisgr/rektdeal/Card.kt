@@ -9,14 +9,14 @@ value class Card internal constructor(val encoded: Byte) {
     constructor(suit: Suit, rank: Rank) : this(suit = suit.encoded, rank = rank.encoded)
     internal constructor(suit: Int, rank: Int) : this((suit.shl(4) or rank).toByte())
 
-    val suitEnc get() = encoded.toInt() shr 4
-    val suit: Suit get() = suitEnc.toSuit()
-    val rankEnc get() = encoded.toInt() and 0xf
-    val rank: Rank get() = Rank(rankEnc)
+    val suitEncoded get() = encoded.toInt() shr 4
+    val suit: Suit get() = suitEncoded.toSuit()
+    val rankEncoded get() = encoded.toInt() and 0xf
+    val rank: Rank get() = Rank(rankEncoded)
 
-    val hcp: Int get() = (rankEnc - 10).coerceAtLeast(0)
-    val qp: Int get() = (rankEnc - 11).coerceAtLeast(0)
-    val controls: Int get() = (rankEnc - 12).coerceAtLeast(0)
+    val hcp: Int get() = (rankEncoded - 10).coerceAtLeast(0)
+    val qp: Int get() = (rankEncoded - 11).coerceAtLeast(0)
+    val controls: Int get() = (rankEncoded - 12).coerceAtLeast(0)
 
     override fun toString(): String = "$suit$rank"
 }

@@ -1,13 +1,15 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     java
     kotlin("jvm")
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
-    kotlinOptions.suppressWarnings = true
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_1_8)
+        suppressWarnings.set(true)
+    }
 }
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8

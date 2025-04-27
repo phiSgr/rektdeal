@@ -3,7 +3,6 @@ package com.github.phisgr.dds
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.jvm.jvmName
 import java.lang.foreign.MemorySegment
-import java.util.*
 
 private val funRegex = Regex("public static int ([A-Z][a-z]\\w+)\\([^)]+\\)")
 private fun cRegex(name: String) = Regex("/\\*\\*$ws\\* \\{@snippet lang=c :$ws\\* int $name\\((.*)\\)")
@@ -35,7 +34,7 @@ fun genFun(javaFile: String): FileSpec {
     funRegex.findAll(javaFile).forEach { match ->
         val cName = match.groupValues[1]
         val ktName = cName
-            .replaceFirstChar { it.lowercase(Locale.getDefault()) }
+            .replaceFirstChar(Char::lowercaseChar)
             .replace("DDtable", "DdTable")
         if (ktName == "setThreading") return@forEach
 

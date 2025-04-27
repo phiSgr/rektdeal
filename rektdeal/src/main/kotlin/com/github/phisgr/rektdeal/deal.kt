@@ -2,15 +2,18 @@ package com.github.phisgr.rektdeal
 
 import com.github.phisgr.dds.*
 import com.github.phisgr.rektdeal.internal.*
+import java.lang.foreign.Arena
+import java.lang.foreign.MemorySegment
 import java.util.*
 import kotlin.collections.AbstractList
 import kotlin.math.max
+import com.github.phisgr.dds.Deal as DdsDeal
 
-const val SIZE = 52
+internal const val SIZE = 52
 
-class Deal private constructor(internal val cards: ByteArray, presorted: Int) : AbstractList<Hand>() {
+class Deal private constructor(internal val cards: ByteArray) : AbstractList<Hand>() {
 
-    internal constructor(presorted: Int) : this(ByteArray(SIZE), presorted)
+    internal constructor() : this(ByteArray(SIZE))
 
     override val size: Int get() = 4
 
@@ -38,7 +41,7 @@ class Deal private constructor(internal val cards: ByteArray, presorted: Int) : 
      * Lowest 4 bits are for whether the [SuitHolding]s are sorted.
      * Then 4 bits for whether [Hand.init] is called.
      */
-    private var handInit: Int = presorted
+    private var handInit: Int = 0
     fun getHand(direction: Direction): Hand = this[direction.encoded]
 
     internal fun reset(presorted: Int) {
@@ -50,6 +53,9 @@ class Deal private constructor(internal val cards: ByteArray, presorted: Int) : 
     val south get() = this[2]
     val west get() = this[3]
 
+    /**
+     * Load the cards of this deal into the DDS [Cards] object for solving.
+     */
     fun setCards(ddsCards: Cards) {
         DIRECTIONS.forEach { direction ->
             var holdings = HoldingBySuit(0)
@@ -84,10 +90,16 @@ class Deal private constructor(internal val cards: ByteArray, presorted: Int) : 
         }
     }
 
+    /**
+     * @return the score of the [contract] when [ddTricks] is won.
+     */
     fun ddScore(contract: Contract, declarer: Direction, vulnerable: Boolean): Int {
         return contract.score(ddTricks(contract.strain, declarer), vulnerable)
     }
 
+    /**
+     * @return number of double dummy tricks the [declarer] makes in [strain]
+     */
     fun ddTricks(strain: Strain, declarer: Direction): Int =
         maybeUseResources { deal, futureTricks, threadIndex ->
             deal.trump = strain
@@ -99,6 +111,120 @@ class Deal private constructor(internal val cards: ByteArray, presorted: Int) : 
             solveBoard(deal, target = -1, solutions = 1, mode = 1, futureTricks, threadIndex)
             13 - futureTricks.score[0]
         }
+
+
+    /**
+     * You can provide [cachedResults] when you're invoking [parScore] after
+     * you have already solved the deal for some trump suit and declarer.
+     *
+     * If [multiThreaded], DDS's [calcDdTable], which solves the contracts in parallel, will be used.
+     * It is `multiThreaded` by default unless
+     * other threads are also using the solver (inferred from the presence of [solverResources]) or
+     * there are `cachedResults`, which `calcDdTable` cannot make use of.
+     *
+     * @return A pair, [DdTable] and a list of par score contracts.
+     * The list is empty if there's no making contract.
+     */
+    fun parScore(
+        dealer: Direction,
+        vulnerability: Vulnerability,
+        cachedResults: Map<Pair<Strain, Direction>, Int>? = null,
+        multiThreaded: Boolean? = null,
+    ): Pair<DdTable, List<ScoredContract>> {
+        var tempArena: Arena? = null
+
+        try {
+            val resources = solverResources.get()
+            val parResultsMaster: ParResultsMaster
+            val ddTableResults: DdTableResults
+            val hasThreadId = resources != null
+
+            // if current thread has a thread id, other threads are running.
+            // calcDdTable cannot make use of cachedResults
+            // with either case, do not use the multithreaded calcDdTable unless explicitly stated
+            if (multiThreaded ?: (!hasThreadId && cachedResults.isNullOrEmpty())) {
+                val ddTableDeal: DdTableDeal
+                when (resources) {
+                    null -> {
+                        tempArena = Arena.ofConfined()
+                        ddTableDeal = DdTableDeal(tempArena)
+                        ddTableResults = DdTableResults(tempArena)
+                        parResultsMaster = ParResultsMaster(tempArena)
+                    }
+                    else -> {
+                        ddTableDeal = DdTableDeal(resources.deal.remainCards.memory)
+                        ddTableResults = resources.ddTableResults
+                        parResultsMaster = resources.parResultsMaster
+                    }
+                }
+                setCards(ddTableDeal.cards)
+                calcDdTable(ddTableDeal, ddTableResults)
+            } else {
+                val ddsDeal: DdsDeal
+                val futureTricks: FutureTricks
+                val threadIndex: Int
+                when (resources) {
+                    null -> {
+                        tempArena = Arena.ofConfined()
+                        ddsDeal = DdsDeal(tempArena)
+                        futureTricks = FutureTricks(tempArena)
+                        ddTableResults = DdTableResults(tempArena)
+                        parResultsMaster = ParResultsMaster(tempArena)
+                        threadIndex = 0
+                    }
+                    else -> {
+                        ddsDeal = resources.deal
+                        futureTricks = resources.futureTricks
+                        ddTableResults = resources.ddTableResults
+                        parResultsMaster = resources.parResultsMaster
+                        threadIndex = resources.threadIndex
+                    }
+                }
+                val ddTable = ddTableResults.resTable
+
+                ddsDeal.currentTrickRank.clear()
+                ddsDeal.currentTrickSuit.clear()
+                setCards(ddsDeal.remainCards)
+
+                for (strain in STRAINS) {
+                    for (declarer in DIRECTIONS) {
+                        when (val tricks = cachedResults?.get(Pair(strain, declarer))) {
+                            null -> {
+                                ddsDeal.trump = strain
+                                ddsDeal.first = declarer.next()
+                                solveBoard(ddsDeal, target = -1, solutions = 1, mode = 1, futureTricks, threadIndex)
+                                ddTable[strain, declarer] = 13 - futureTricks.score[0]
+                            }
+                            else -> ddTable[strain, declarer] = tricks
+                        }
+                    }
+                }
+            }
+
+            dealerParBin(ddTableResults, parResultsMaster, dealer, vulnerability)
+            val score = parResultsMaster.score
+            val contracts = List(if (score == 0) 0 else parResultsMaster.number) {
+                val ddsContract = parResultsMaster.contracts[it]
+                ScoredContract(
+                    Contract(
+                        level = ddsContract.level,
+                        strain = ddsContract.denom,
+                        // if the contract goes down, it's always doubled, never redoubled
+                        doubled = ddsContract.underTricks.coerceAtMost(1)
+                    ),
+                    declarer = ddsContract.seats,
+                    score = score,
+                    tricks = ddsContract.level + ddsContract.overTricks - ddsContract.underTricks
+                )
+            }
+
+            val onHeap = MemorySegment.ofArray(IntArray(20))
+            onHeap.copyFrom(ddTableResults.resTable.memory)
+            return Pair(DdTable(onHeap), contracts)
+        } finally {
+            tempArena?.close()
+        }
+    }
 
     @Suppress("LocalVariableName")
     fun handDiagram(
@@ -151,12 +277,9 @@ class Deal private constructor(internal val cards: ByteArray, presorted: Int) : 
     }
 }
 
-private const val SHAPE_INIT = 1
-private const val L1234_INIT = 2
-
 class Hand internal constructor(
     private val dealCards: ByteArray,
-    val direction: Direction,
+    direction: Direction,
 ) : AbstractList<SuitHolding>() {
     private val offset = direction.encoded * 13
 
@@ -166,26 +289,27 @@ class Hand internal constructor(
     val diamonds: SuitHolding get() = suits[2]
     val clubs: SuitHolding get() = suits[3]
 
-    private var arraysInit = 0
+    private var shapeInit = false
+    private var l1234Init = false
 
     private val _shape = IntArray(4) { 0 }
     val shape: ReadOnlyIntArray
         get() {
-            if (arraysInit and SHAPE_INIT == 0) {
+            if (!shapeInit) {
                 repeat(4) {
                     _shape[it] = suits[it].size
                 }
-                arraysInit = arraysInit or SHAPE_INIT
+                shapeInit = true
             }
             return ReadOnlyIntArray(_shape)
         }
 
     private val _shapeSorted = IntArray(4) { 0 }
     private fun getL(i: Int): Int {
-        if (arraysInit and L1234_INIT == 0) {
+        if (!l1234Init) {
             shape.wrapped.copyInto(_shapeSorted)
             _shapeSorted.sort()
-            arraysInit = arraysInit or L1234_INIT
+            l1234Init = true
         }
         return _shapeSorted[4 - i]
     }
@@ -206,6 +330,10 @@ class Hand internal constructor(
     val l1: Int get() = getL(1)
     val l2: Int get() = getL(2)
     val l3: Int get() = getL(3)
+
+    /**
+     * Length of the shortest suit.
+     */
     val l4: Int get() = getL(4)
 
     internal fun sortCards() {
@@ -217,6 +345,10 @@ class Hand internal constructor(
         for (it in offset until toIndex) {
             bits = bits.withCard(cards[it])
         }
+        fromBitVector(bits)
+    }
+
+    internal fun fromBitVector(bits: HoldingBySuit) {
         bits.forEachIndexed(
             startIndex = offset,
             afterEachSuit = { index, suit ->
@@ -235,7 +367,8 @@ class Hand internal constructor(
         // is it meant to be?
 
         // reset lazy values
-        arraysInit = 0
+        shapeInit = false
+        l1234Init = false
         _hcp = -1
         _qp = -1
         _controls = -1
@@ -290,8 +423,8 @@ class Hand internal constructor(
      */
     val freakness: Int
         get() {
-            val shapeArray = shape.wrapped
             if (_freakness == -1) {
+                val shapeArray = shape.wrapped
                 _freakness = sumOf(end = 4) { index ->
                     val l = shapeArray[index]
                     max(l - 4, 3 - l) + (2 - l).coerceAtLeast(0)
@@ -305,6 +438,7 @@ class Hand internal constructor(
      */
     val playingTricks: Double get() = sumOf(end = 4) { suits[it].playingTricks }
     val losers: Double get() = sumOf(end = 4) { suits[it].losers }
+    val newLtc: Double get() = sumOf(end = 4) { suits[it].newLtc }
 
     override fun toString(): String = "♠\uFE0F${get(S)}♥\uFE0F${get(H)}♦\uFE0F${get(D)}♣\uFE0F${get(C)}"
     fun handDiagram(): String = "♠\uFE0F${get(S)}\n♥\uFE0F${get(H)}\n♦\uFE0F${get(D)}\n♣\uFE0F${get(C)}"
@@ -328,6 +462,7 @@ class SuitHolding internal constructor(private val dealCards: ByteArray, handOff
     internal fun reset() {
         _losers = -1.0
         _playingTricks = -1.0
+        _newLtc = -1.0
     }
 
     val hcp: Int
@@ -341,32 +476,40 @@ class SuitHolding internal constructor(private val dealCards: ByteArray, handOff
     val losers: Double
         get() {
             if (_losers == -1.0) {
-                _losers = if (size == 0) {
-                    0.0
-                } else {
-                    var temp = 0.0
-                    var topCardIndex = 0
-                    if (this[0] != Rank.A) {
-                        temp += 1
-                    } else {
-                        topCardIndex += 1
-                    }
-                    if (size >= 2 && this[topCardIndex] != Rank.K) {
-                        temp += 1
-                    } else {
-                        topCardIndex += 1
-                    }
-                    if (size >= 3) {
-                        if (this[topCardIndex] != Rank.Q) {
-                            temp += 1
-                        } else if (temp == 2.0 && this[1] < Rank.T) {
-                            temp += 0.5 // Q9x = 2.5 losers
+                var topCardIndex = 0
+                var halfLosers = 0
+                repeat(3.coerceAtMost(size)) { i ->
+                    if (this[topCardIndex].encoded != Rank.A.encoded - i) {
+                        halfLosers += 2
+                    } else if (i != 2) {
+                        topCardIndex++
+                    } else { // it's the queen iteration
+                        if (topCardIndex == 0 && this[1] < Rank.T) {
+                            halfLosers++
                         }
                     }
-                    temp
                 }
+                _losers = halfLosers / 2.0
             }
             return _losers
+        }
+
+    private var _newLtc: Double = -1.0
+    val newLtc: Double
+        get() {
+            if (_newLtc == -1.0) {
+                var topCardIndex = 0
+                var halfLosers = 0
+                repeat(3.coerceAtMost(size)) { i ->
+                    if (this[topCardIndex].encoded != Rank.A.encoded - i) {
+                        halfLosers += 3 - i
+                    } else {
+                        topCardIndex++
+                    }
+                }
+                _newLtc = halfLosers / 2.0
+            }
+            return _newLtc
         }
 
     private var _playingTricks: Double = -1.0
@@ -384,7 +527,7 @@ class SuitHolding internal constructor(private val dealCards: ByteArray, handOff
             if (_playingTricks == -1.0) {
                 val extraLength = (size - 3).coerceAtLeast(0)
                 val top3 = sumOf(end = size - extraLength) { i ->
-                    getCard(i).rankEnc shl (8 - 4 * i)
+                    getCard(i).rankEncoded shl (8 - 4 * i)
                 }
 
                 // A K Q J T 9 8 7

@@ -12,3 +12,16 @@ public fun solveBoard(
 ) {
     STUB()
 }
+
+public fun calcDdTable(tableDeal: DdTableDeal, tablep: DdTableResults) {
+    STUB()
+}
+
+public fun dealerParBin(
+    tablep: DdTableResults,
+    presp: ParResultsMaster,
+    dealer: Direction,
+    vulnerable: Vulnerability,
+) {
+    STUB()
+}

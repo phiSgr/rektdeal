@@ -6,11 +6,10 @@ import java.util.concurrent.ThreadLocalRandom
 
 private data class LV(val length: Int, val value: Int)
 
-private class Pattern(
-    val lengths: IntArray,
-    val values: IntArray,
-)
-
+/**
+ * A utility class to convert a `Holding` encoded int into a List.
+ * This makes getting nth card in a suit easier.
+ */
 private class HoldingCardList : RankList() {
     override var size: Int = 0
         private set
@@ -36,6 +35,7 @@ private class HoldingCardList : RankList() {
 
 /**
  * Generates hands that has the [shape], and the sum of [evaluator]'s result of the four suits is `in` [values]
+ * This class is thread-safe as its initialization logic is synchronized and immutable afterwards.
  */
 class SmartStack(
     private val shape: Shape,
@@ -51,7 +51,7 @@ class SmartStack(
     private var preDealt: Long = -1 // not a valid preDealt value
 
     private lateinit var cumSum: LongArray
-    private lateinit var patterns: List<Pattern>
+    private lateinit var patterns: Array<IntArray>
 
 
     @Synchronized
@@ -81,7 +81,7 @@ class SmartStack(
 
         var count = 0L
         var cumSum = LongArray(64)
-        val patterns = arrayListOf<Pattern>()
+        val patterns = arrayListOf<IntArray>()
         var index = 0
 
         holdings[0].forEach { (spadesLv, spades) ->
@@ -105,9 +105,11 @@ class SmartStack(
 
                                 cumSum[index] = count
                                 patterns.add(
-                                    Pattern(
-                                        intArrayOf(sLength, hLength, dLength, cLength),
-                                        intArrayOf(sValue, hValue, dValue, cValue)
+                                    intArrayOf(
+                                        sLength, sValue,
+                                        hLength, hValue,
+                                        dLength, dValue,
+                                        cLength, cValue
                                     )
                                 )
                                 index++
@@ -123,7 +125,7 @@ class SmartStack(
         }
 
         this.cumSum = cumSum.copyOf(index)
-        this.patterns = patterns
+        this.patterns = patterns.toTypedArray()
         this.preDealt = preDealt.encoded
         this.holdings = Array(4) {
             holdings[it].run {
@@ -151,7 +153,10 @@ class SmartStack(
         var remaining = (handIndex - if (index == 0) 0 else cumSum[index - 1]).toInt()
         var cards = 0L
         repeat(4) { suit ->
-            val holding = holdings[suit][LV(pattern.lengths[suit], pattern.values[suit])]!!
+            val length = pattern[suit * 2]
+            val value = pattern[suit * 2 + 1]
+
+            val holding = holdings[suit][LV(length, value)]!!
             val holdingSize = holding.size
 
             val holdingIndex = remaining % holdingSize

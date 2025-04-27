@@ -20,17 +20,17 @@ pip install -r requirements.txt
 cd examples/
 source venv/bin/activate
 export JAVA_HOME=`/usr/libexec/java_home -v 22`
-KOTLIN_JUPYTER_JAVA_OPTS='--enable-preview' jupyter notebook
+jupyter notebook
 ```
 
 <details>
 <summary>Or with a specific <code>JAVA_HOME</code></summary>
 
 ```sh
-export JAVA_HOME=/usr/lib/jvm/zulu21-ca-amd64
+export JAVA_HOME=/usr/lib/jvm/zulu22-ca-amd64
 cd examples/
 source venv/bin/activate
-KOTLIN_JUPYTER_JAVA_OPTS='--enable-preview' jupyter notebook
+jupyter notebook
 ```
 </details>
 
@@ -48,8 +48,7 @@ pip install -r requirements.txt
 Start Notebook
 
 ```bat
-set 'JAVA_HOME=C:\Program Files\Zulu\zulu-21'
-set KOTLIN_JUPYTER_JAVA_OPTS=--enable-preview
+set 'JAVA_HOME=C:\Program Files\Zulu\zulu-22'
 cd examples
 venv\Scripts\activate.bat
 jupyter notebook

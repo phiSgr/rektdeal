@@ -64,4 +64,10 @@ value class HoldingBySuit(val encoded: Long) {
     fun getHolding(suit: Suit): Holding = Holding(
         (encoded shr (suit.encoded * 16)).toInt() and MASK
     )
+
+    internal fun writeToArray(array: ByteArray, offset: Int = 0) {
+        forEachIndexed(startIndex = offset) { index, card ->
+            array[index] = card
+        }
+    }
 }

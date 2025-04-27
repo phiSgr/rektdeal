@@ -10,7 +10,7 @@ class TestSolver {
 
     @Test
     fun testSingleThreadSolving() {
-        val deal = Deal(0)
+        val deal = Deal()
 
         repeat(3) { i ->
             deal.fromPbn(deals[i])

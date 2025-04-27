@@ -17,7 +17,7 @@ jobs:
           submodules: recursive
       - id: dds_commit
         run: cd dds && git log --pretty=format:'hash=%h' >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: linux-lib/**
           key: linux-${{ steps.dds_commit.outputs.hash }}
@@ -29,7 +29,7 @@ jobs:
     if: ${{ needs.check-hash-cache.outputs.linux_cached == 'False' }}
     name: linux-x86_64
     steps:
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: linux-lib/**
           key: linux-${{ needs.check-hash-cache.outputs.dds_hash }}
@@ -56,12 +56,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: linux-lib/**
           key: linux-${{ needs.check-hash-cache.outputs.dds_hash }}
           fail-on-cache-miss: true
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -69,11 +69,11 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: jextract-22/**
           key: jextract-22
-      - run: '[ -f jextract-22/bin/jextract ] || wget -c https://download.java.net/java/early_access/jextract/22/3/openjdk-22-jextract+3-13_linux-x64_bin.tar.gz -O - | tar -xz'
+      - run: '[ -f jextract-22/bin/jextract ] || wget -c https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz -O - | tar -xz'
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'

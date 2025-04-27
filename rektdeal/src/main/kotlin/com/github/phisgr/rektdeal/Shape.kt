@@ -118,6 +118,7 @@ class Shape internal constructor(
      * Allows the syntax [Hand.shape] `in shape`
      */
     operator fun contains(shape: ReadOnlyIntArray): Boolean = contains(shape[0], shape[1], shape[2])
+    operator fun contains(shape: List<Int>): Boolean = contains(shape[0], shape[1], shape[2])
     operator fun invoke(hand: Hand): Boolean = bitset[hand.shapeFlattened]
 
     /**
@@ -165,6 +166,9 @@ class Shape internal constructor(
         "Shape(count=${count}, " +
             "minLengths=${minLengths.contentToString()}, " +
             "maxLengths=${maxLengths.contentToString()})"
+
+    override fun equals(other: Any?): Boolean = other is Shape && this.bitset == other.bitset
+    override fun hashCode(): Int = bitset.hashCode()
 }
 
 private fun lengthsFromBitSet(

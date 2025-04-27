@@ -1,5 +1,5 @@
 import com.github.phisgr.rektdeal.Publishing.configure
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("common.library-conventions")
@@ -21,19 +21,15 @@ dependencies {
 tasks.test {
     dependsOn(":dds4j:jar")
     classpath += files("${rootProject.projectDir}/dds4j/build/libs/dds4j-${project(":dds4j").version}.jar")
-    jvmArgs("--enable-preview", "--enable-native-access=ALL-UNNAMED")
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+kotlin {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_1_8)
 }
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-tasks.withType<me.champeau.jmh.JmhBytecodeGeneratorTask> {
-    jvmArgs.set(listOf("--enable-preview"))
 }
 
 jmh {
@@ -43,7 +39,6 @@ jmh {
     threads.set(1)
     profilers.set(listOf("gc"))
 
-    jvmArgs.set(listOf("--enable-preview"))
     jmhVersion.set("1.37")
 }
 
@@ -52,7 +47,12 @@ repositories {
 }
 
 publishing {
-    configure(project, "ReKtDeal", "A bridge deal generator for Kotlin.")
+    configure(
+        project,
+        "ReKtDeal",
+        "A bridge deal generator for Kotlin.",
+        "https://github.com/phiSgr/rektdeal"
+    )
 }
 
 tasks.named<JavaExec>("runTestMainClass") {

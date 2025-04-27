@@ -92,3 +92,86 @@ public class FutureTricks(
         override fun toString(): String = STUB()
     }
 }
+
+public class ParResultsMaster(
+    public val memory: MemorySegment,
+) {
+    public val score: Int
+        get() = STUB()
+
+    public val number: Int
+        get() = STUB()
+
+    public val contracts: ContractType.Array
+        get() = STUB()
+
+
+    public constructor(allocator: SegmentAllocator) : this(STUB() as MemorySegment)
+
+    public class Array(
+        public val memory: MemorySegment,
+    ) {
+        public constructor(allocator: SegmentAllocator, size: Int) :
+            this(STUB())
+
+        public operator fun `get`(index: Int): ParResultsMaster =
+            STUB()
+
+        public fun size(): Int = STUB()
+
+        public fun toString(count: Int): String = STUB()
+
+    }
+}
+
+public class ContractType(
+    public val memory: MemorySegment,
+) {
+    public val underTricks: Int
+        get() = STUB()
+
+    public val overTricks: Int
+        get() = STUB()
+
+    public val level: Int
+        get() = STUB()
+
+    public val denom: Strain
+        get() = STUB()
+
+    public val seats: Seats
+        get() = STUB()
+
+    public constructor(allocator: SegmentAllocator) : this(STUB() as MemorySegment)
+
+    public class Array(
+        public val memory: MemorySegment,
+    ) {
+        public constructor(allocator: SegmentAllocator, size: Int) :
+            this(STUB())
+
+        public operator fun `get`(index: Int): ContractType = STUB()
+
+        public fun size(): Int = STUB()
+
+        public fun toString(count: Int): String = STUB()
+    }
+}
+
+public class DdTableDeal(
+    public val memory: MemorySegment,
+) {
+    public val cards: Cards
+        get() = Cards(memory)
+
+    public constructor(allocator: SegmentAllocator) : this(STUB() as MemorySegment)
+}
+
+public class DdTableResults(
+    public val memory: MemorySegment,
+) {
+    public val resTable: DdTable
+        get() = DdTable(memory)
+
+    public constructor(allocator: SegmentAllocator) : this(STUB() as MemorySegment)
+}

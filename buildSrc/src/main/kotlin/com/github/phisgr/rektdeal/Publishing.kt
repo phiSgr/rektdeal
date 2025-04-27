@@ -11,6 +11,7 @@ object Publishing {
         project: Project,
         pomName: String,
         pomDescription: String,
+        scmUrl: String,
     ) {
 
         repositories {
@@ -31,7 +32,7 @@ object Publishing {
                 pom {
                     name.set(pomName)
                     description.set(pomDescription)
-                    url.set("https://github.com/phiSgr/rektdeal")
+                    url.set(scmUrl)
 
                     licenses {
                         license {
@@ -47,7 +48,7 @@ object Publishing {
                         }
                     }
                     scm {
-                        url.set("https://github.com/phiSgr/rektdeal")
+                        url.set(scmUrl)
                     }
                 }
             }
