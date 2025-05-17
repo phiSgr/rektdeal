@@ -16,8 +16,8 @@ object Publishing {
 
         repositories {
             maven {
-                name = "sonatype"
-                setUrl("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+                name = "ossrh-staging-api"
+                setUrl("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
                 credentials {
                     username = project.properties["ossrhUsername"] as String?
                     password = project.properties["ossrhPassword"] as String?
