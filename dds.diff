@@ -71,3 +71,25 @@ index c5a0c2e..97bf893 100644
  
  %.o:	%.cpp
  	$(CC) $(COMPILE_FLAGS) -c $<
+diff --git a/src/Moves.cpp b/src/Moves.cpp
+index c2e5e62..317e95a 100644
+--- a/src/Moves.cpp
++++ b/src/Moves.cpp
+@@ -387,7 +387,7 @@ void Moves::WeightAllocTrump0(
+     else if ((tpos.winner[suit].hand == lho[leadHand]) &&
+              (tpos.secondBest[suit].hand == partner[leadHand]))
+     {
+-      /* This case was suggested by Joël Bradmetz. */
++      /* This case was suggested by JoÃ«l Bradmetz. */
+       if (tpos.length[partner[leadHand]][suit] != 1)
+         suitBonus += 27;
+     }
+@@ -689,7 +689,7 @@ void Moves::WeightAllocNT0(
+       else if ((tpos.winner[suit].hand == lho[leadHand]) &&
+                (tpos.secondBest[suit].hand == partner[leadHand]))
+       {
+-        /* This case was suggested by Joël Bradmetz. */
++        /* This case was suggested by JoÃ«l Bradmetz. */
+         if (tpos.length[partner[leadHand]][suit] != 1)
+           suitWeightDelta += 31;
+       }
