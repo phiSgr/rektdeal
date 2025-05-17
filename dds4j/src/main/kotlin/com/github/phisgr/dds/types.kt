@@ -130,6 +130,12 @@ value class Holding(val encoded: Int) {
         operator fun invoke(s: String): Holding = s.fold(Holding(0)) { holding, char ->
             holding.withCard(Rank.fromChar(char))
         }
+
+        @JvmStatic
+        @JvmName("fromRanks")
+        operator fun invoke(vararg ranks: Int): Holding = ranks.fold(Holding(0)) { holding, rank ->
+            holding.withCard(rank.toRank())
+        }
     }
 
     class Array(

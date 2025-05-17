@@ -10,20 +10,20 @@ deals with a double void, deals with a strong 2♣️ opener opposite a yarborou
 Using Bo Haglund's double dummy solver,
 it can even solve the hands it has generated for you.
 Unfortunately, the language of Redeal - Python - is slow.
-ReKtDeal is thus my rewrite of Redeal using another language: Kotlin.
+ReKtDeal is thus my rewrite of Redeal using another language: Kotlin.[^1]
 
 The deal generation in ReKtDeal is often 100x faster than Redeal,
 and that's before multi-threading.
 
-ReKtDeal runs on JVM 22+.
-The [embedded double dummy solver](./dds4j) is pre-built for
+## DDS4J: Double Dummy Solver
+
+Under the hood, ReKtDeal uses [DDS4J](./dds4j) -
+Java binding for Bo Haglund’s double dummy solver
+(JVM 22+ required).
+The binary is bundled for
 Windows/Linux x86_64, macOS x86_64/Apple Silicon.
 I believe this covers most users.
 See the [instructions](./dds4j#custom-binary) if your system is not included.
-
-The introduction paragraph was adapted from the [README of Redeal](
-https://github.com/anntzer/redeal/blob/main/README.rst).
-The almost identical wording was inspired by some then-recent news.
 
 ## Setup
 
@@ -53,6 +53,24 @@ For that [Kotlin Jupyter](https://github.com/Kotlin/kotlin-jupyter) can be used.
 @file:DependsOn("com.github.phisgr:rektdeal:0.2.0")
 ```
 
+## About
+
+The name is pronounced "wrecked deal" - a play on "Redeal" and "kt".
+
+While ReKtDeal largely mirrors the API of Redeal, it departs in philosophy.
+Redeal, following Deal, is primarily a command-line program that accepts scripts -
+user logic is passed into a main program.
+For instance, you can construct an `OpeningLeadSim` in your code,
+but to run it you have to invoke `python -mredeal`.
+
+ReKtDeal, on the other hand, is a library.
+In your own program or in the REPL,
+you call `openingLead` like any other function.
+
 # Talk is cheap. Show me the code.
 
 See a full introduction demo [here](examples/introduction.ipynb).
+
+[^1]: The opening paragraph was adapted from the [README of Redeal](
+https://github.com/anntzer/redeal/blob/main/README.rst).
+The almost identical wording was inspired by some then-recent news.

@@ -1,6 +1,6 @@
 # DDS4J
 
-Wrapper around the C++ library [DDS](https://github.com/dds-bridge/dds).
+Java binding for the [double dummy solver in C++](https://github.com/dds-bridge/dds).
 
 This project makes use of two code-generators -
 [jextract](https://jdk.java.net/jextract/) for the low level Java FFM code, and

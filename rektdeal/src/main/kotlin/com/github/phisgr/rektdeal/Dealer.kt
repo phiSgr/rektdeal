@@ -13,6 +13,10 @@ private fun handleDynamic(value: Any): PreDeal = when (value) {
 }
 
 class Dealer(preDeals: Map<Direction, PreDeal>? = null) {
+    /**
+     * The parameters can either be a string that will be parsed as [PreDealCards],
+     * or a [PreDeal] value (i.e. [PreDeal] or [PreDealCards].
+     */
     @Suppress("LocalVariableName")
     constructor(N: Any? = null, E: Any? = null, S: Any? = null, W: Any? = null) : this(
         listOf(

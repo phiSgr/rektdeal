@@ -11,9 +11,8 @@ import com.github.phisgr.dds.Deal as DdsDeal
 
 internal const val SIZE = 52
 
-class Deal private constructor(internal val cards: ByteArray) : AbstractList<Hand>() {
-
-    internal constructor() : this(ByteArray(SIZE))
+class Deal internal constructor() : AbstractList<Hand>() {
+    internal val cards: ByteArray = ByteArray(SIZE)
 
     override val size: Int get() = 4
 
@@ -48,10 +47,10 @@ class Deal private constructor(internal val cards: ByteArray) : AbstractList<Han
         handInit = presorted
     }
 
-    val north get() = this[0]
-    val east get() = this[1]
-    val south get() = this[2]
-    val west get() = this[3]
+    val north: Hand get() = this[0]
+    val east: Hand get() = this[1]
+    val south: Hand get() = this[2]
+    val west: Hand get() = this[3]
 
     /**
      * Load the cards of this deal into the DDS [Cards] object for solving.

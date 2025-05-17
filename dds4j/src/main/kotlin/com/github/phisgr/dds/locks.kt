@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.withLock
 
-val threadCount = Arena.ofConfined().use {
+val threadCount: Int = Arena.ofConfined().use {
     tryLoadLib()
 
     val threadCount = when (val override = System.getenv("DDS_MAX_THREADS")) {

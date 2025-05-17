@@ -4,7 +4,7 @@ import com.github.phisgr.dds.N
 import com.github.phisgr.dds.Seats
 import com.github.phisgr.dds.Strain
 
-private val pattern = Regex("([1-7])([CDHSN])(X{0,2})", RegexOption.IGNORE_CASE)
+private val pattern = Regex("([1-7])(C|D|H|S|NT?)(X{0,2})", RegexOption.IGNORE_CASE)
 
 data class ScoredContract(val contract: Contract, val declarer: Seats, val score: Int, val tricks: Int)
 
@@ -17,7 +17,7 @@ data class Contract(val level: Int, val strain: Strain, val doubled: Int) {
     // Workaround for not having code before constructor call.
     private constructor(matchResult: MatchResult) : this(
         matchResult.groupValues[1].toInt(),
-        Strain.fromChar(matchResult.groupValues[2].single().uppercaseChar()),
+        Strain.fromChar(matchResult.groupValues[2].first().uppercaseChar()),
         doubled = matchResult.groupValues[3].length
     )
 

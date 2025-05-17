@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 class TestContract {
     private fun testContract(contractString: String, vulScores: List<Int>, nonVulScores: List<Int>) {
         val contract = Contract(contractString)
-        assertEquals(contract.toString(), contractString.uppercase())
+        assertEquals(contract.toString(), contractString.uppercase().replace("NT", "N"))
 
         listOf(vulScores to true, nonVulScores to false).forEach { (scores, vul) ->
             assertEquals(
@@ -30,7 +30,7 @@ class TestContract {
         )
 
         testContract(
-            "1nxx",
+            "1ntxx",
             listOf(-4000, -3400, -2800, -2200, -1600, -1000, -400, 760, 1160, 1560, 1960, 2360, 2760, 3160),
             listOf(-3400, -2800, -2200, -1600, -1000, -600, -200, 560, 760, 960, 1160, 1360, 1560, 1760)
         )

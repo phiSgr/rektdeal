@@ -34,8 +34,14 @@ private class HoldingCardList : RankList() {
 }
 
 /**
- * Generates hands that has the [shape], and the sum of [evaluator]'s result of the four suits is `in` [values]
- * This class is thread-safe as its initialization logic is synchronized and immutable afterwards.
+ * A [SmartStack] accelerates deal generation via precomputation.
+ * Instead of only filtering from random deals, the rare hand in the deal is directly generated.
+ *
+ * Only one [SmartStack] is allowed per [Dealer] - applying the algorithm twice naively skews probabilities.
+ * However, you *can* still use an `accept` filter alongside a [SmartStack] without issue.
+ *
+ * Generates hands with the given [shape] and [evaluator] sum within [values].
+ * Thread-safe: initialization is synchronized, and the object is immutable thereafter.
  */
 class SmartStack(
     private val shape: Shape,

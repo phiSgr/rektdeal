@@ -71,7 +71,7 @@ publishing {
     configure(
         project,
         "DDS4J",
-        "Wrapper around the Double Dummy Solver C++ Library.",
+        "Java FFM binding for Bo Haglund's Double Dummy Solver",
         "https://github.com/phiSgr/rektdeal/tree/main/dds4j"
     )
 }

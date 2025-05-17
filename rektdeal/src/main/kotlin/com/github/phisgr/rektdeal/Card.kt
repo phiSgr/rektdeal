@@ -9,9 +9,9 @@ value class Card internal constructor(val encoded: Byte) {
     constructor(suit: Suit, rank: Rank) : this(suit = suit.encoded, rank = rank.encoded)
     internal constructor(suit: Int, rank: Int) : this((suit.shl(4) or rank).toByte())
 
-    val suitEncoded get() = encoded.toInt() shr 4
+    val suitEncoded: Int get() = encoded.toInt() shr 4
     val suit: Suit get() = suitEncoded.toSuit()
-    val rankEncoded get() = encoded.toInt() and 0xf
+    val rankEncoded: Int get() = encoded.toInt() and 0xf
     val rank: Rank get() = Rank(rankEncoded)
 
     val hcp: Int get() = (rankEncoded - 10).coerceAtLeast(0)
