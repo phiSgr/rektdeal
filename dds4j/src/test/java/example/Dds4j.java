@@ -73,37 +73,38 @@ public class Dds4j {
         deal.getCurrentTrickRank().clear();
         Cards cards = deal.getRemainCards();
 
-        Map<Direction, Map<Suit, String>> holdings = Map.of(
+        Map<Direction, Map<Suit, Integer>> holdings = Map.of(
                 Direction.N, Map.of(
-                        Suit.S, "QJ6",
-                        Suit.H, "K652",
-                        Suit.D, "J85",
-                        Suit.C, "T98"
+                        Suit.S, Holding.parse("QJ6"),
+                        Suit.H, Holding.parse("K652"),
+                        Suit.D, Holding.parse("J85"),
+                        Suit.C, Holding.parse("T98")
                 ),
                 Direction.E, Map.of(
-                        Suit.S, "873",
-                        Suit.H, "J97",
-                        Suit.D, "AT764",
-                        Suit.C, "Q4"
+                        Suit.S, Holding.parse("873"),
+                        Suit.H, Holding.parse("J97"),
+                        Suit.D, Holding.parse("AT764"),
+                        Suit.C, Holding.parse("Q4")
                 ),
                 Direction.S, Map.of(
-                        Suit.S, "K5",
-                        Suit.H, "T83",
-                        Suit.D, "KQ9",
-                        Suit.C, "A7652"
+                        Suit.S, Holding.parse("K5"),
+                        Suit.H, Holding.parse("T83"),
+                        Suit.D, Holding.parse("KQ9"),
+                        Suit.C, Holding.parse("A7652")
                 ),
                 Direction.W, Map.of(
-                        Suit.S, "AT942",
-                        Suit.H, "AQ4",
-                        Suit.D, "32",
-                        Suit.C, "KJ3"
+                        // you can also use Holding.fromRanks to encode the cards into an int
+                        Suit.S, Holding.fromRanks(14, 10, 9, 4, 2),
+                        Suit.H, Holding.fromRanks(14, 12, 4),
+                        Suit.D, Holding.fromRanks(3, 2),
+                        Suit.C, Holding.fromRanks(13, 11, 3)
                 )
         );
 
         for (var direction : Direction.DIRECTIONS) {
             for (var suit : Suit.SUITS) {
-                String holdingString = holdings.get(direction).get(suit);
-                cards.set(direction, suit, Holding.parse(holdingString));
+                int holding = holdings.get(direction).get(suit);
+                cards.set(direction, suit, holding);
             }
         }
 
@@ -111,6 +112,6 @@ public class Dds4j {
         solveBoard(deal, -1, 1, 1, futureTricks, 0);
 
         System.out.println(futureTricks);
-        System.out.println("The double dummy tricks for declarer is" + (13 - futureTricks.getScore().get(0)));
+        System.out.println("The double dummy tricks for declarer is " + (13 - futureTricks.getScore().get(0)));
     }
 }
