@@ -93,3 +93,16 @@ index c2e5e62..317e95a 100644
          if (tpos.length[partner[leadHand]][suit] != 1)
            suitWeightDelta += 31;
        }
+diff --git a/src/TransTableL.cpp b/src/TransTableL.cpp
+index d858cdb..ebce0ac 100644
+--- a/src/TransTableL.cpp
++++ b/src/TransTableL.cpp
+@@ -1051,7 +1051,7 @@ string TransTableL::MakeHolding(
+ void TransTableL::DumpHands(
+   ofstream& fout,
+   const vector<vector<string>>& hands,
+-  const unsigned char lengths[][DDS_SUITS]) const
++  const unsigned char lengths[DDS_HANDS][DDS_SUITS]) const
+ {
+   for (unsigned i = 0; i < DDS_SUITS; i++)
+   {
