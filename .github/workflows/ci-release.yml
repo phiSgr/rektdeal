@@ -59,10 +59,10 @@ jobs:
             make -f Makefiles/Makefile_mingw THREAD_LINK= THREADING=-DDDS_THREADS_STL &&
             Copy-Item -Force dds.dll ../../win-lib/
   build-mac:
-    runs-on: macos-11
+    runs-on: macos-13
     needs: check-hash-cache
     if: ${{ needs.check-hash-cache.outputs.mac_cached == 'False' }}
-    name: mac-x86_64
+    name: mac
     steps:
       - uses: actions/cache@v4
         with:
