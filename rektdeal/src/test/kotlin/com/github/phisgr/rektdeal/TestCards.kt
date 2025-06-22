@@ -173,7 +173,7 @@ class TestCards {
 
         fun check() {
             spades.reset()
-            println(spades)
+            println("$spades ${value(spades)}")
             assertEquals(referenceImpl(spades), value(spades))
         }
 

@@ -2,6 +2,7 @@ package com.github.phisgr.rektdeal
 
 import com.github.phisgr.dds.*
 import com.github.phisgr.rektdeal.internal.ONE_MIL
+import com.github.phisgr.rektdeal.internal.shuffleWithoutPermuteHead
 import java.util.function.Predicate
 
 private fun handleDynamic(value: Any): PreDeal = when (value) {
@@ -32,7 +33,7 @@ class Dealer(preDeals: Map<Direction, PreDeal>? = null) {
     )
 
     /**
-     * [leftCards] - [smartStack]
+     * [leftCards] - [preparedSmartStack]
      */
     private val cardsToDeal: ByteArray
 
@@ -41,8 +42,8 @@ class Dealer(preDeals: Map<Direction, PreDeal>? = null) {
      */
     private val leftCards: HoldingBySuit
 
-    private var smartStackDirection: Int = -1
-    private var smartStack: SmartStack? = null
+    private val smartStackDirection: Int
+    private val preparedSmartStack: PreparedSmartStack?
 
     private var deal: Deal
 
@@ -51,6 +52,7 @@ class Dealer(preDeals: Map<Direction, PreDeal>? = null) {
     init {
         var leftCards = HoldingBySuit.WHOLE_DECK
 
+        var smartStack: Pair<Direction, SmartStack>? = null
         (preDeals ?: emptyMap()).forEach { (direction, preDeal) ->
             when (preDeal) {
                 is PreDealCards -> {
@@ -62,49 +64,57 @@ class Dealer(preDeals: Map<Direction, PreDeal>? = null) {
                 }
 
                 is SmartStack -> {
-                    require(smartStackDirection == -1) { "Only one SmartStack allowed." }
-                    smartStackDirection = direction.encoded
-                    smartStack = preDeal
+                    require(smartStack == null) { "Only one SmartStack allowed." }
+                    smartStack = Pair(direction, preDeal)
                 }
             }
         }
 
         this.leftCards = leftCards
 
-        smartStack?.prepare(preDealt = HoldingBySuit.WHOLE_DECK.removeCards(leftCards))
+        when (val pair = smartStack) {
+            null -> {
+                smartStackDirection = -1
+                preparedSmartStack = null
+            }
+            else -> {
+                val (direction, ss) = pair
+                smartStackDirection = direction.encoded
+                preparedSmartStack = ss.prepare(HoldingBySuit.WHOLE_DECK.removeCards(leftCards))
+            }
+        }
 
         cardsToDeal = ByteArray(
             leftCards.size - (if (smartStack == null) 0 else 13)
         )
 
         if (smartStack == null) {
-            setUpCards(leftCards)
+            leftCards.writeToArray(cardsToDeal)
         }
         deal = newDealObject()
     }
 
-    private fun setUpCards(leftCards: HoldingBySuit) {
-        leftCards.writeToArray(cardsToDeal)
-    }
-
     private fun deal() {
-        val smartStack = this.smartStack
+        val smartStack = this.preparedSmartStack
         val dealCards = deal.cards
         if (smartStack != null) {
             val smartCards = smartStack()
-            deal[smartStackDirection].fromBitVector(smartCards)
-            setUpCards(leftCards.removeCards(smartCards))
+            deal.hands[smartStackDirection].fromBitVector(smartCards)
+            leftCards.removeCards(smartCards).writeToArray(cardsToDeal)
         }
-        cardsToDeal.shuffle()
 
         var dealt = 0
         var presorted = 0
         repeat(4) { direction ->
             val preDealtCount = if (direction == smartStackDirection) 13 else preDeals[direction].countOneBits()
             if (preDealtCount == 13) {
-                // cards already written during newDealObject() or newDeal[direction].fromBitVector(holdingBySuit)
+                // cards already written during newDealObject or deal.hands[smartStackDirection].fromBitVector
                 presorted = presorted or (1 shl direction)
             } else {
+                if (dealt == 0) {
+                    cardsToDeal.shuffleWithoutPermuteHead(13 - preDealtCount)
+                }
+
                 val offset = direction * 13
                 if (preDealtCount > 0) {
                     // the pre-dealt cards might be shuffled away
@@ -171,7 +181,7 @@ class Dealer(preDeals: Map<Direction, PreDeal>? = null) {
             val holdingBySuit = HoldingBySuit(preDeal)
             if (holdingBySuit.size == 13) {
                 preSorted = preSorted or (1 shl direction)
-                newDeal[direction].fromBitVector(holdingBySuit)
+                newDeal.hands[direction].fromBitVector(holdingBySuit)
             }
         }
         newDeal.reset(preSorted)

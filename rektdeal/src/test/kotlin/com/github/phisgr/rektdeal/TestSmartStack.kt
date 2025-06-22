@@ -30,13 +30,16 @@ class TestSmartStack {
         }
 
         val smartStack = SmartStack(gamblingShape, gambling, listOf(4)) // all satisfy
-        smartStack.prepare(
-            HoldingBySuit.parse("AK K52 98765 962")
-        )
+            .prepare(
+                HoldingBySuit.parse("AK K52 98765 962")
+            )
         val occurrences = IntArray(COMBINATIONS)
         repeat(100_000) { // test failure should be like sth like a 10-sigma event
             val north = smartStack().encoded
-            val lengths = SUITS.map { suit -> (0xffffL shl (16 * suit.encoded)).and(north).countOneBits() }
+            val lengths = SUITS.map { suit ->
+                val mask = 0xffffL shl (16 * suit.encoded)
+                mask.and(north).countOneBits()
+            }
             val (s, h, d, _) = lengths
             assertEquals(13, lengths.sum())
             occurrences[flatten(s, h, d)]++
@@ -77,9 +80,9 @@ class TestSmartStack {
         val shape = logTimeMs({ "The everything shape took $it" }) { Shape("xxxx") }
         val smartStack = SmartStack(shape, Evaluator.hcp, 0..37)
         // the prepare step took 3 minutes in Python redeal
-        logTimeMs({ "Prepare and first hand took $it" }) { smartStack() }
-        logTimeMs({ "Afterwards, a hand took $it" }) { smartStack() }
-        val cumSum = cumSumField.get(smartStack) as LongArray
+        val prepared = logTimeMs({ "Preparing took $it" }) { smartStack.prepare(HoldingBySuit(0)) }
+        logTimeMs({ "Afterwards, a hand took $it" }) { prepared() }
+        val cumSum = cumSumField.get(prepared) as LongArray
 
         fun hcpRange(l: Int) = when (l) {
             0 -> 0..0

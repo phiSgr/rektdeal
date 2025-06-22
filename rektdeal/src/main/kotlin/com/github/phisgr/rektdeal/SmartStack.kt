@@ -1,6 +1,7 @@
 package com.github.phisgr.rektdeal
 
 import com.github.phisgr.dds.Rank
+import org.agrona.collections.Long2ObjectHashMap
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
 
@@ -14,20 +15,22 @@ private class HoldingCardList : RankList() {
     override var size: Int = 0
         private set
 
-    private val cards: IntArray = IntArray(13)
+    private val cards = ByteArray(13)
     override fun get(index: Int): Rank {
         Objects.checkIndex(index, size)
-        return Rank(cards[index])
+        return Rank(cards[index].toInt())
     }
 
     fun setHolding(holding: Int) {
         size = holding.countOneBits()
+        var bits = holding
         var index = 0
-        for (i in 14 downTo 2) {
-            if (holding.and(1 shl i) != 0) {
-                cards[index] = i
-                index++
-            }
+        while (bits != 0) {
+            val pos = 31 - bits.countLeadingZeroBits()
+            cards[index] = pos.toByte()
+            bits = bits and (1 shl pos).inv()
+
+            index++
         }
     }
 
@@ -41,31 +44,22 @@ private class HoldingCardList : RankList() {
  * However, you *can* still use an `accept` filter alongside a [SmartStack] without issue.
  *
  * Generates hands with the given [shape] and [evaluator] sum within [values].
- * Thread-safe: initialization is synchronized, and the object is immutable thereafter.
+ *
+ * Thread-safe.
  */
 class SmartStack(
     private val shape: Shape,
     private val evaluator: Evaluator,
     private val values: Iterable<Int>,
 ) : PreDeal() {
-    private lateinit var holdings: Array<Map<LV, IntArray>>
-
-    /**
-     * Allows [prepare] to be called by multiple [Deal]s,
-     * as long as they are the same value.
-     */
-    private var preDealt: Long = -1 // not a valid preDealt value
-
-    private lateinit var cumSum: LongArray
-    private lateinit var patterns: Array<IntArray>
-
+    private val prepared = HashMap<Long, PreparedSmartStack>()
 
     @Synchronized
-    internal fun prepare(preDealt: HoldingBySuit) {
-        if (this.preDealt == preDealt.encoded) return
-        check(this.preDealt == -1L)
+    internal fun prepare(preDealt: HoldingBySuit): PreparedSmartStack =
+        prepared.computeIfAbsent(preDealt.encoded) { createPrepared(preDealt) }
 
-        val holdings = Array(4) { mutableMapOf<LV, MutableList<Int>>() }
+    private fun createPrepared(preDealt: HoldingBySuit): PreparedSmartStack {
+        val holdings = Array(4) { mutableMapOf<LV, MutableList<Short>>() }
 
         val cardList = HoldingCardList()
         repeat(1 shl 13) {
@@ -80,7 +74,7 @@ class SmartStack(
                     shape.maxLengths[suit] >= length &&
                     preDealt.noOverlap(suit, holding)
                 ) {
-                    holdings[suit].getOrPut(LV(length, value)) { mutableListOf() }.add(holding)
+                    holdings[suit].getOrPut(LV(length, value)) { mutableListOf() }.add(holding.toShort())
                 }
             }
         }
@@ -112,10 +106,14 @@ class SmartStack(
                                 cumSum[index] = count
                                 patterns.add(
                                     intArrayOf(
-                                        sLength, sValue,
-                                        hLength, hValue,
-                                        dLength, dValue,
-                                        cLength, cValue
+                                        sValue,
+                                        hValue,
+                                        dValue,
+                                        cValue,
+                                        sLength +
+                                            (hLength +
+                                                (dLength +
+                                                    cLength.shl(4)).shl(4)).shl(4)
                                     )
                                 )
                                 index++
@@ -130,53 +128,58 @@ class SmartStack(
             "No hand can satisfy the conditions."
         }
 
-        this.cumSum = cumSum.copyOf(index)
-        this.patterns = patterns.toTypedArray()
-        this.preDealt = preDealt.encoded
-        this.holdings = Array(4) {
-            holdings[it].run {
-                mapValuesTo(HashMap.newHashMap(size)) { (_, value) ->
-                    value.toIntArray()
+        return PreparedSmartStack(
+            Array(4) { suit ->
+                val holdingsMap = holdings[suit]
+                val fastMap = Long2ObjectHashMap<ShortArray>(holdingsMap.size, 0.65f)
+                holdingsMap.forEach { (key, value) ->
+                    fastMap.put(key.length.toLong().shl(32) + key.value, value.toShortArray())
                 }
-            }
-        }
+                fastMap
+            },
+            cumSum.copyOf(index),
+            IntArray(5 * patterns.size) { patterns[it / 5][it % 5] },
+        )
     }
 
-    operator fun invoke(): HoldingBySuit {
-        if (this.preDealt == -1L) {
-            prepare(HoldingBySuit(0))
-        }
+    private fun valueInRange(v: Int) = when (val vs = values) {
+        is IntRange -> v in vs  // member method comparing `start` and `endInclusive`
+        else -> v in vs         // extension method iterating the members
+    }
 
+}
+
+class PreparedSmartStack internal constructor(
+    private val holdings: Array<Long2ObjectHashMap<ShortArray>>,
+    private val cumSum: LongArray,
+    private val patterns: IntArray,
+) {
+
+    operator fun invoke(): HoldingBySuit {
         val handIndex = ThreadLocalRandom.current().nextLong(cumSum.last())
 
         val index = cumSum.binarySearch(handIndex).let { index ->
             if (index < 0) (-index - 1) else (index + 1)
         }
-        val pattern = patterns[index]
+        val patternOffset = index * 5
 
         // cumSum[index] - cumSum[index - 1] == spades.size * hearts.size * diamonds.size * clubs.size
         // remaining == spades.size * (hearts.size * (d.size * cIndex + dIndex) + hIndex) + sIndex
         var remaining = (handIndex - if (index == 0) 0 else cumSum[index - 1]).toInt()
-        var cards = 0L
+        var cards = HoldingBySuit(0L)
         repeat(4) { suit ->
-            val length = pattern[suit * 2]
-            val value = pattern[suit * 2 + 1]
+            val length = patterns[patternOffset + 4].shr(4 * suit) and 0xf
+            val value = patterns[patternOffset + suit]
 
-            val holding = holdings[suit][LV(length, value)]!!
+            val holding = holdings[suit][length.toLong().shl(32) + value]!!
             val holdingSize = holding.size
 
             val holdingIndex = remaining % holdingSize
             remaining /= holdingSize
 
-            cards += holding[holdingIndex].toLong().shl(16 * suit)
+            cards = cards.withHolding(suit, holding[holdingIndex])
         }
-        return HoldingBySuit(cards)
+        return cards
     }
-
-    private fun valueInRange(v: Int) = if (values is IntRange) {
-        v in values // member method comparing `start` and `endInclusive`
-    } else {
-        v in values // extension method iterating the members
-    }
-
 }
+

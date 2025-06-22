@@ -36,7 +36,7 @@ fun sdNegativeBinomial(r: Int, p: Double): Double {
     return sqrt(variance)
 }
 
-val cumSumField: Field = SmartStack::class.java.getDeclaredField("cumSum").also {
+val cumSumField: Field = PreparedSmartStack::class.java.getDeclaredField("cumSum").also {
     it.isAccessible = true
 }
 

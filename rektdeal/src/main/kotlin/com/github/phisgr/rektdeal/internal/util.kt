@@ -7,6 +7,7 @@ import com.github.phisgr.rektdeal.PreDeal
 import com.github.phisgr.rektdeal.PreDealCards
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
+import java.util.concurrent.ThreadLocalRandom
 import kotlin.experimental.ExperimentalTypeInference
 
 inline fun <A, reified B> List<A>.mapToArray(f: (A) -> B): Array<B> = Array(size) { f(this[it]) }
@@ -88,5 +89,17 @@ fun validateOpeningLeadPreDeals(
 fun PreDealCards.requireWholeHand() {
     require(holding.size == 13) {
         "$holding is incomplete. Only ${holding.size} cards."
+    }
+}
+
+fun ByteArray.shuffleWithoutPermuteHead(length: Int) {
+    val random = ThreadLocalRandom.current()
+    // length is usually 13, but can be smaller because of partial pre-deal
+    // shuffling through 0..<length is useless, as that does not change which card goes to which hand
+    for (i in lastIndex downTo length) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
     }
 }

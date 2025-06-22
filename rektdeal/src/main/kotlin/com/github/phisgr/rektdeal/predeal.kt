@@ -18,7 +18,7 @@ sealed class PreDeal
 fun PreDealHand(s: String) = PreDealCards(s).apply { requireWholeHand() }
 
 /**
- * [s] is the suits separated by spaces.
+ * The input string is the suits separated by spaces.
  * Voids can be represented with a `-`.
  * The honours are upper case characters `AKQJT`.
  */
@@ -32,11 +32,25 @@ class PreDealCards(s: String) : PreDeal() {
      */
     fun validCards(): List<Card> = buildList {
         var prevCard: Byte = 0
+        var suitStart = 0
+
+        // forEachIndexed goes CA,...C2,DA,...H2,SA,...S2
+        // but we want the ordering here to go SA,...S2,HA,...D2,CA,...C2
+        // so we reverse after each suit is done
+        // then reverse the whole list
+
+        // rather ugly and slow, but not in the hot path, so whatev
         holding.forEachIndexed { _, card ->
+            if (Card(prevCard).suitEncoded != Card(card).suitEncoded) {
+                subList(suitStart, size).reverse()
+                suitStart = size
+            }
             if (prevCard != card.inc()) {
                 add(Card(card))
             }
             prevCard = card
         }
+        subList(suitStart, size).reverse()
+        reverse()
     }
 }

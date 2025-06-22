@@ -17,7 +17,7 @@ But using them in Java is awkward, so they were moved to Java files.
 ## Usage
 
 ```kotlin
-implementation("com.github.phisgr:dds4j:0.2.0")
+implementation("com.github.phisgr:dds4j:0.3.0")
 ```
 
 ### Type Safety

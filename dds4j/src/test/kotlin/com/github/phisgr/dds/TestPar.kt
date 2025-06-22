@@ -141,14 +141,22 @@ class TestPar {
             val deal = DdTableDeal(arena)
             val cards = deal.cards
             cards.memory.fill(0)
-            cards[NORTH, S] = Holding("AKQJT98")
-            cards[WEST, D] = cards[NORTH, S]
-            cards[NORTH, H] = Holding("AKQJT9")
-            cards[WEST, C] = cards[NORTH, H]
-            cards[EAST, S] = Holding("765432")
-            cards[SOUTH, D] = cards[EAST, S]
-            cards[EAST, H] = Holding("8765432")
-            cards[SOUTH, C] = cards[EAST, H]
+            Holding("AKQJT98").let {
+                cards[WEST, D] = it
+                cards[NORTH, S] = it
+            }
+            Holding("AKQJT9").let {
+                cards[WEST, C] = it
+                cards[NORTH, H] = it
+            }
+            Holding("765432").let {
+                cards[SOUTH, D] = it
+                cards[EAST, S] = it
+            }
+            Holding("8765432").let {
+                cards[SOUTH, C] = it
+                cards[EAST, H] = it
+            }
 
             val ddTable = DdTableResults(arena)
 

@@ -1,9 +1,6 @@
 package com.github.phisgr.rektdeal
 
-import com.github.phisgr.dds.N
-import com.github.phisgr.dds.Rank
-import com.github.phisgr.dds.SOUTH
-import com.github.phisgr.dds.WEST
+import com.github.phisgr.dds.*
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.assertTimeoutPreemptively
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
@@ -11,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicIntegerArray
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
@@ -206,6 +204,23 @@ class TestMultiThreaded {
                 (deal.north.hearts.size == 4 || deal.north.spades.size == 4) && deal.north.hcp in 9..11
             },
             contract = Contract("3N"),
+        )
+        assertEquals(
+            listOf(
+                Card(S, Rank.Q),
+                Card(S, Rank.T),
+                Card(H, Rank.T),
+                Card(H, Rank(3)),
+                Card(D, Rank.J),
+                Card(D, Rank(8)),
+                Card(D, Rank(3)),
+                Card(C, Rank(3)),
+            ),
+            stat.mp.entries
+        )
+        assertEquals(
+            stat.mp.entries,
+            stat.trickFrequencies.keys.toList()
         )
         println(stat)
     }

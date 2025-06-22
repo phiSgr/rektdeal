@@ -72,7 +72,11 @@ publishing {
         project,
         "DDS4J",
         "Java FFM binding for Bo Haglund's Double Dummy Solver",
-        "https://github.com/phiSgr/rektdeal/tree/main/dds4j"
+        "https://github.com/phiSgr/rektdeal/tree/main/dds4j",
+        licenseSpec = {
+            name.set("Apache-2.0")
+            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+        }
     )
 }
 

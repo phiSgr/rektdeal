@@ -2,6 +2,7 @@ package com.github.phisgr.rektdeal
 
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPomLicense
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.get
@@ -12,6 +13,7 @@ object Publishing {
         pomName: String,
         pomDescription: String,
         scmUrl: String,
+        licenseSpec: MavenPomLicense.() -> Unit,
     ) {
 
         repositories {
@@ -36,8 +38,7 @@ object Publishing {
 
                     licenses {
                         license {
-                            name.set("GPL-v3.0")
-                            url.set("http://www.gnu.org/licenses/gpl-3.0.txt")
+                            licenseSpec()
                         }
                     }
                     developers {

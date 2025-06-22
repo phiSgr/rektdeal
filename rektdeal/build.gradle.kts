@@ -51,7 +51,11 @@ publishing {
         project,
         "ReKtDeal",
         "A bridge deal generator for Kotlin.",
-        "https://github.com/phiSgr/rektdeal"
+        "https://github.com/phiSgr/rektdeal",
+        licenseSpec = {
+            name.set("GPL-v3.0")
+            url.set("http://www.gnu.org/licenses/gpl-3.0.txt")
+        }
     )
 }
 

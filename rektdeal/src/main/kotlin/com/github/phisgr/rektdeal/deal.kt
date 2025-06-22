@@ -32,7 +32,7 @@ class Deal internal constructor() : AbstractList<Hand>() {
 
     override fun toString(): String = (0..3).joinToString(separator = " ") { this[it].toString() }
 
-    private val hands = DIRECTIONS.mapToArray { direction ->
+    internal val hands = DIRECTIONS.mapToArray { direction ->
         Hand(cards, direction)
     }
 
@@ -348,16 +348,13 @@ class Hand internal constructor(
     }
 
     internal fun fromBitVector(bits: HoldingBySuit) {
-        bits.forEachIndexed(
-            startIndex = offset,
-            afterEachSuit = { index, suit ->
-                if (suit != 3) {
-                    suits[suit].end = index
-                    suits[suit + 1].start = index
-                }
-            }
-        ) { index, card ->
-            dealCards[index] = card
+        bits.writeToArray(dealCards, offset)
+
+        for (suit in 3 downTo 1) {
+            val position = offset + bits.countCardsOfOrBelowSuit(suit)
+
+            suits[suit].end = position
+            suits[suit - 1].start = position
         }
     }
 
@@ -475,20 +472,7 @@ class SuitHolding internal constructor(private val dealCards: ByteArray, handOff
     val losers: Double
         get() {
             if (_losers == -1.0) {
-                var topCardIndex = 0
-                var halfLosers = 0
-                repeat(3.coerceAtMost(size)) { i ->
-                    if (this[topCardIndex].encoded != Rank.A.encoded - i) {
-                        halfLosers += 2
-                    } else if (i != 2) {
-                        topCardIndex++
-                    } else { // it's the queen iteration
-                        if (topCardIndex == 0 && this[1] < Rank.T) {
-                            halfLosers++
-                        }
-                    }
-                }
-                _losers = halfLosers / 2.0
+                _losers = losersX2() / 2.0
             }
             return _losers
         }
@@ -497,16 +481,7 @@ class SuitHolding internal constructor(private val dealCards: ByteArray, handOff
     val newLtc: Double
         get() {
             if (_newLtc == -1.0) {
-                var topCardIndex = 0
-                var halfLosers = 0
-                repeat(3.coerceAtMost(size)) { i ->
-                    if (this[topCardIndex].encoded != Rank.A.encoded - i) {
-                        halfLosers += 3 - i
-                    } else {
-                        topCardIndex++
-                    }
-                }
-                _newLtc = halfLosers / 2.0
+                _newLtc = newLtcX2() / 2.0
             }
             return _newLtc
         }
@@ -524,29 +499,7 @@ class SuitHolding internal constructor(private val dealCards: ByteArray, handOff
     val playingTricks: Double
         get() {
             if (_playingTricks == -1.0) {
-                val extraLength = (size - 3).coerceAtLeast(0)
-                val top3 = sumOf(end = size - extraLength) { i ->
-                    getCard(i).rankEncoded shl (8 - 4 * i)
-                }
-
-                // A K Q J T 9 8 7
-                // e d c b a 9 8 7
-                _playingTricks = extraLength + when {
-                    top3 == 0xedc -> 3.0 // AKQ
-                    top3 == 0xedb || top3 == 0xecb -> 2.5 // AKJ AQJ
-                    top3 >= 0xed0 || top3 == 0xeca || top3 == 0xdcb -> 2.0 // AK(x) AQT KQJ
-                    top3 >= 0xeb0 -> 1.5 // A(Q/J)(x)
-                    top3 >= 0xe00 -> 1.0 // A(xx)
-                    top3 == 0xdba || top3 >= 0xdc2 -> 1.5 //  KJT KQx
-                    top3 >= 0xdb0 -> 1.0 // K(Q/J)(x)
-                    top3 > 0xd00 -> 0.5 // if (top3 and 0xf == 0) 0.5 else 1.0 // Kx(x)
-                    top3 == 0xd00 -> 0.0 // stiff K
-                    top3 >= 0xcb2 -> 1.0 // QJx
-                    top3 >= 0xc20 -> if (top3 and 0xf == 0) 0.0 else 0.5 // 0.5 // Qx(x)
-                    top3 == 0xc00 -> 0.0 // stiff Q
-                    top3 >= 0xba2 -> 0.5 // JTx
-                    else -> 0.0
-                }
+                _playingTricks = playingTricksX2() / 2.0
             }
             return _playingTricks
         }

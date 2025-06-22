@@ -4,8 +4,6 @@ import com.github.phisgr.dds.Holding
 import com.github.phisgr.dds.Rank
 import com.github.phisgr.dds.Suit
 
-private const val MASK = 1.shl(15) - 4
-
 /**
  * The [Holding] encoding repeated 4 times, spades in the least significant bits.
  */
@@ -25,14 +23,11 @@ value class HoldingBySuit(val encoded: Long) {
             return HoldingBySuit(encoded)
         }
 
-        // MASK repeated 4 times
         val WHOLE_DECK: HoldingBySuit = HoldingBySuit(0x7ffc7ffc7ffc7ffc)
     }
 
-    fun noOverlap(suit: Int, holding: Int): Boolean = (holding.toLong() shl (suit * 16)).and(encoded) == 0L
-
     override fun toString(): String = (0..3).joinToString(separator = " ") {
-        val holding = Holding(encoded.shr(16 * it).toInt()).toString()
+        val holding = getHolding(it).toString()
         if (holding == "") "-" else holding
     }
 
@@ -41,29 +36,38 @@ value class HoldingBySuit(val encoded: Long) {
 
     inline fun forEachIndexed(
         startIndex: Int = 0,
-        afterEachSuit: (index: Int, suit: Int) -> Unit = { _, _ -> },
         action: (index: Int, card: Byte) -> Unit,
     ) {
-        var i = startIndex
-        repeat(4) { suit ->
-            val prefix = suit * 16
-            var cardBit = 1L shl (14 + prefix)
-            for (rank in 14 downTo 2) {
-                if (encoded and cardBit != 0L) {
-                    action(i, (prefix + rank).toByte())
-                    i++
-                }
-                cardBit = cardBit shr 1
-            }
-            afterEachSuit(i, suit)
+
+        var bits = encoded
+        var index = startIndex
+        while (bits != 0L) {
+            val pos = 63 - bits.countLeadingZeroBits()
+            action(index, pos.toByte())
+            bits = bits and (1L shl pos).inv()
+
+            index++
         }
     }
 
     fun withCard(card: Byte): HoldingBySuit = HoldingBySuit(encoded or (1L shl card.toInt()))
+    fun noOverlap(suit: Int, holding: Int): Boolean = (holding.toLong() shl (suit * 16)).and(encoded) == 0L
 
-    fun getHolding(suit: Suit): Holding = Holding(
-        (encoded shr (suit.encoded * 16)).toInt() and MASK
+    fun withHolding(suit: Int, holding: Short): HoldingBySuit = HoldingBySuit(
+        (holding.toLong() shl (suit * 16)).or(encoded)
     )
+
+    fun getHolding(suit: Suit): Holding = getHolding(suit.encoded)
+    private fun getHolding(suit: Int): Holding = Holding(
+        // toShort to take last 16 bits
+        // toInt to fit the representation inherited from DDS
+        (encoded shr (suit * 16)).toShort().toInt()
+    )
+
+    internal fun countCardsOfOrBelowSuit(suit: Int): Int {
+        val mask = (-1L).shl(16 * suit)
+        return encoded.and(mask).countOneBits()
+    }
 
     internal fun writeToArray(array: ByteArray, offset: Int = 0) {
         forEachIndexed(startIndex = offset) { index, card ->

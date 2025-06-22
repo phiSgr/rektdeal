@@ -41,8 +41,8 @@ dependencies {
 
 group = "com.github.phisgr"
 version = when (name) {
-    "dds4j" -> "0.2.0"
-    "rektdeal" -> "0.2.0"
+    "dds4j" -> "0.3.0"
+    "rektdeal" -> "0.3.0"
     else -> throw IllegalStateException("unknown project $name")
 }
 

@@ -161,8 +161,12 @@ value class Holding(val encoded: Int) {
     override fun toString(): String {
         val size = Integer.bitCount(encoded)
         return StringBuilder(size).apply {
-            for (it in 14 downTo 2) {
-                if (encoded and (1 shl it) != 0) append(Rank(it).toChar())
+
+            var bits = encoded
+            while (bits != 0) {
+                val pos = 31 - bits.countLeadingZeroBits()
+                append(Rank(pos).toChar())
+                bits = bits and (1 shl pos).inv()
             }
         }.toString()
     }

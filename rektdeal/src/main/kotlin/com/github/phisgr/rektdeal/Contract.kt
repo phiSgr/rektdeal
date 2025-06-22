@@ -31,7 +31,7 @@ data class Contract(val level: Int, val strain: Strain, val doubled: Int) {
         val overTricks = tricks - (level + 6)
         return if (overTricks >= 0) {
             val perTrick = if (strain.encoded in 2..3) 20 else 30
-            val belowTheLine = (perTrick * level + if (strain == N) 10 else 0) * (1 shl doubled)
+            val belowTheLine = (perTrick * level + if (strain == N) 10 else 0) shl doubled
             val insult = 50 * doubled
 
             val bonus = when {

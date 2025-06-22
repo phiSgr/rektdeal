@@ -35,7 +35,7 @@ Using it is no different from any other library from Maven.
 
 ```kotlin
 dependencies {
-    implementation("com.github.phisgr:rektdeal:0.2.0")
+    implementation("com.github.phisgr:rektdeal:0.3.0")
 }
 
 // Set the JVM args
@@ -50,7 +50,7 @@ But I imagine most uses are going to be interactive.
 For that [Kotlin Jupyter](https://github.com/Kotlin/kotlin-jupyter) can be used.
 
 ```kotlin
-@file:DependsOn("com.github.phisgr:rektdeal:0.2.0")
+@file:DependsOn("com.github.phisgr:rektdeal:0.3.0")
 ```
 
 ## About
