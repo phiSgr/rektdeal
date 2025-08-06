@@ -67,6 +67,8 @@ ReKtDeal, on the other hand, is a library.
 In your own program or in the REPL,
 you call `openingLead` like any other function.
 
+See [this blogpost](https://medium.com/p/957839cac3d4) for how and why it was built.
+
 # Talk is cheap. Show me the code.
 
 See a full introduction demo [here](examples/introduction.ipynb).
