@@ -12,13 +12,14 @@ COPY .devcontainer/warm-jupyter-cache.sh /tmp/warm-jupyter-cache.sh
 COPY .devcontainer/warmup.ipynb /tmp/warmup.ipynb
 RUN chmod +x /tmp/warm-jupyter-cache.sh
 
-# universal:5 includes JDK 25; install Jupyter + Kotlin kernel for system Python.
-RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
-
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
-RUN /tmp/warm-jupyter-cache.sh
+ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
+
+# Install as codespace (not root) so Jupyter/VS Code see the same kernelspecs.
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt \
+    && /tmp/warm-jupyter-cache.sh
 
 USER root
 RUN rm -f /tmp/warm-jupyter-cache.sh /tmp/requirements.txt /tmp/warmup.ipynb
