@@ -1,45 +1,43 @@
-# Kotlin Jupyter examples for GitHub Codespaces (cf. github/codespaces-jupyter)
-FROM azul-zulu:25-jdk
+# Codespace for Kotlin Jupyter examples (cf. github/codespaces-jupyter)
+FROM azul-zulu:25-jdk AS zulu25
 
-ENV DEBIAN_FRONTEND=noninteractive
+FROM mcr.microsoft.com/devcontainers/universal:2
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    python3-pip \
-    python3-venv \
-    git \
-    sudo \
-    && rm -rf /var/lib/apt/lists/*
+ARG KOTLIN_LSP_VERSION=262.4739.0
+ARG USERNAME=codespace
 
-ARG USERNAME=vscode
-ARG USER_UID=1000
-ARG USER_GID=${USER_UID}
+USER root
 
-RUN groupadd --gid "${USER_GID}" "${USERNAME}" \
-    && useradd -s /bin/bash --uid "${USER_UID}" --gid "${USER_GID}" -m "${USERNAME}" \
-    && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > "/etc/sudoers.d/${USERNAME}" \
-    && chmod 0440 "/etc/sudoers.d/${USERNAME}"
+# Zulu 25 from the official image (kotlin-lsp requires JDK 25).
+COPY --from=zulu25 /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
+RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/zulu25/bin/java 2500 \
+    && update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/zulu25/bin/javac 2500
+
+ENV JAVA_HOME=/usr/lib/jvm/zulu25
+ENV KOTLIN_JUPYTER_JAVA_HOME=/usr/lib/jvm/zulu25
+ENV KOTLIN_JUPYTER_JAVA_OPTS=--enable-native-access=ALL-UNNAMED
+# universal ships JDK 21 on PATH; kotlin-lsp requires 25.
+ENV PATH="/usr/lib/jvm/zulu25/bin:${PATH}"
 
 COPY .devcontainer/requirements.txt /tmp/requirements.txt
 COPY .devcontainer/warm-jupyter-cache.sh /tmp/warm-jupyter-cache.sh
 COPY .devcontainer/warmup.ipynb /tmp/warmup.ipynb
-RUN chmod +x /tmp/warm-jupyter-cache.sh
+COPY .devcontainer/install-kotlin-lsp.sh /tmp/install-kotlin-lsp.sh
+RUN chmod +x /tmp/warm-jupyter-cache.sh /tmp/install-kotlin-lsp.sh
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
-ENV KOTLIN_JUPYTER_JAVA_HOME="${JAVA_HOME}"
-ENV KOTLIN_JUPYTER_JAVA_OPTS="--enable-native-access=ALL-UNNAMED"
+RUN /tmp/install-kotlin-lsp.sh
 
 RUN python3 -m venv /home/${USERNAME}/venv \
     && /home/${USERNAME}/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
 
 ENV PATH="/home/${USERNAME}/venv/bin:${PATH}"
 
-# Resolve example-notebook dependencies (rektdeal, dataframe, transitives) into ~/.m2/repository.
 RUN /tmp/warm-jupyter-cache.sh
 
 USER root
-RUN rm -f /tmp/warm-jupyter-cache.sh /tmp/requirements.txt /tmp/warmup.ipynb
+RUN rm -f /tmp/warm-jupyter-cache.sh /tmp/requirements.txt /tmp/warmup.ipynb /tmp/install-kotlin-lsp.sh
 
 USER ${USERNAME}

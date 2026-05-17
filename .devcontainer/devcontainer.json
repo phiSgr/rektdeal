@@ -4,22 +4,32 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "remoteUser": "vscode",
+  "remoteUser": "codespace",
   "hostRequirements": {
     "cpus": 4
   },
   "containerEnv": {
+    "JAVA_HOME": "/usr/lib/jvm/zulu25",
+    "KOTLIN_JUPYTER_JAVA_HOME": "/usr/lib/jvm/zulu25",
     "KOTLIN_JUPYTER_JAVA_OPTS": "--enable-native-access=ALL-UNNAMED"
   },
-  "updateContentCommand": "/home/vscode/venv/bin/pip install -r .devcontainer/requirements.txt",
-  "postAttachCommand": "echo \"Open an examples/*.ipynb notebook and use Select Kernel → Kotlin.\"",
+  "updateContentCommand": "/home/codespace/venv/bin/pip install -r .devcontainer/requirements.txt",
+  "postCreateCommand": "python3 .devcontainer/fix-notebook-kotlin-metadata.py",
+  "postAttachCommand": "echo \"Open examples/*.ipynb → Select Kernel → Kotlin. Kotlin editor: JetBrains Kotlin (kotlin-lsp).\"",
   "customizations": {
     "codespaces": {
       "openFiles": ["examples/introduction.ipynb"]
     },
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "/home/vscode/venv/bin/python3",
+        "python.defaultInterpreterPath": "/home/codespace/venv/bin/python3",
+        "remote.autoForwardPorts": false,
+        "remote.autoForwardPortsSource": "process",
+        "remote.portsAttributes": {
+          "*": {
+            "onAutoForward": "ignore"
+          }
+        },
         "github.copilot.enable": {
           "*": false
         },
