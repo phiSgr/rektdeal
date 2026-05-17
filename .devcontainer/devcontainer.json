@@ -9,20 +9,18 @@
     "cpus": 4
   },
   "containerEnv": {
-    "JAVA_HOME": "/usr/lib/jvm/zulu25",
-    "KOTLIN_JUPYTER_JAVA_HOME": "/usr/lib/jvm/zulu25",
     "KOTLIN_JUPYTER_JAVA_OPTS": "--enable-native-access=ALL-UNNAMED"
   },
-  "updateContentCommand": "/home/codespace/venv/bin/pip install -r .devcontainer/requirements.txt",
+  "updateContentCommand": "pip3 install -r .devcontainer/requirements.txt",
   "postCreateCommand": "bash .devcontainer/install-kotlin-lsp.sh && python3 .devcontainer/fix-notebook-kotlin-metadata.py",
-  "postAttachCommand": "echo \"Open examples/*.ipynb → Select Kernel → Kotlin. Kotlin editor: JetBrains Kotlin (kotlin-lsp).\"",
+  "postAttachCommand": "echo \"Open examples/*.ipynb → Select Kernel → Jupyter Kernel → Kotlin.\"",
   "customizations": {
     "codespaces": {
       "openFiles": ["examples/introduction.ipynb"]
     },
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "/home/codespace/venv/bin/python3",
+        "python.defaultInterpreterPath": "/home/codespace/.python/current/bin/python3",
         "remote.autoForwardPorts": false,
         "remote.autoForwardPortsSource": "process",
         "remote.portsAttributes": {
