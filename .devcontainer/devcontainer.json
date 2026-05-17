@@ -14,7 +14,7 @@
     "KOTLIN_JUPYTER_JAVA_OPTS": "--enable-native-access=ALL-UNNAMED"
   },
   "updateContentCommand": "/home/codespace/venv/bin/pip install -r .devcontainer/requirements.txt",
-  "postCreateCommand": "python3 .devcontainer/fix-notebook-kotlin-metadata.py",
+  "postCreateCommand": "bash .devcontainer/install-kotlin-lsp.sh && python3 .devcontainer/fix-notebook-kotlin-metadata.py",
   "postAttachCommand": "echo \"Open examples/*.ipynb → Select Kernel → Kotlin. Kotlin editor: JetBrains Kotlin (kotlin-lsp).\"",
   "customizations": {
     "codespaces": {

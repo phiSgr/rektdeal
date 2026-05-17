@@ -22,13 +22,10 @@ ENV PATH="/usr/lib/jvm/zulu25/bin:${PATH}"
 COPY .devcontainer/requirements.txt /tmp/requirements.txt
 COPY .devcontainer/warm-jupyter-cache.sh /tmp/warm-jupyter-cache.sh
 COPY .devcontainer/warmup.ipynb /tmp/warmup.ipynb
-COPY .devcontainer/install-kotlin-lsp.sh /tmp/install-kotlin-lsp.sh
-RUN chmod +x /tmp/warm-jupyter-cache.sh /tmp/install-kotlin-lsp.sh
+RUN chmod +x /tmp/warm-jupyter-cache.sh
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
-
-RUN /tmp/install-kotlin-lsp.sh
 
 RUN python3 -m venv /home/${USERNAME}/venv \
     && /home/${USERNAME}/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
@@ -38,6 +35,6 @@ ENV PATH="/home/${USERNAME}/venv/bin:${PATH}"
 RUN /tmp/warm-jupyter-cache.sh
 
 USER root
-RUN rm -f /tmp/warm-jupyter-cache.sh /tmp/requirements.txt /tmp/warmup.ipynb /tmp/install-kotlin-lsp.sh
+RUN rm -f /tmp/warm-jupyter-cache.sh /tmp/requirements.txt /tmp/warmup.ipynb
 
 USER ${USERNAME}
