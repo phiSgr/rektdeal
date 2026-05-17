@@ -11,8 +11,8 @@
   "containerEnv": {
     "KOTLIN_JUPYTER_JAVA_OPTS": "--enable-native-access=ALL-UNNAMED"
   },
-  "updateContentCommand": "pip3 install -r .devcontainer/requirements.txt",
-  "postCreateCommand": "bash .devcontainer/install-kotlin-lsp.sh && python3 .devcontainer/fix-notebook-kotlin-metadata.py",
+  "updateContentCommand": "pip3 install --user -r .devcontainer/requirements.txt",
+  "postCreateCommand": "bash .devcontainer/install-kotlin-lsp.sh",
   "postAttachCommand": "echo \"Open examples/*.ipynb → Select Kernel → Jupyter Kernel → Kotlin.\"",
   "customizations": {
     "codespaces": {

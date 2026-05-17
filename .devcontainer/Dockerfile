@@ -18,7 +18,7 @@ WORKDIR /home/${USERNAME}
 ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
 
 # Install as codespace (not root) so Jupyter/VS Code see the same kernelspecs.
-RUN pip3 install --no-cache-dir -r /tmp/requirements.txt \
+RUN pip3 install --user --no-cache-dir -r /tmp/requirements.txt \
     && /tmp/warm-jupyter-cache.sh
 
 USER root

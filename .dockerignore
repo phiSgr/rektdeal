@@ -3,6 +3,5 @@
 **/build
 **/bin
 examples/venv
-examples/lets-plot-images
 **/.ipynb_checkpoints
 **/__pycache__
