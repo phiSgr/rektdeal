@@ -1,0 +1,45 @@
+{
+  "name": "ReKtDeal Kotlin Jupyter",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "hostRequirements": {
+    "cpus": 4
+  },
+  "forwardPorts": [8888],
+  "portsAttributes": {
+    "8888": {
+      "label": "Jupyter",
+      "onAutoForward": "notify"
+    }
+  },
+  "containerEnv": {
+    "KOTLIN_JUPYTER_JAVA_HOME": "${containerEnv:JAVA_HOME}",
+    "KOTLIN_JUPYTER_JAVA_OPTS": "--enable-native-access=ALL-UNNAMED"
+  },
+  "updateContentCommand": "/home/vscode/venv/bin/pip install -r .devcontainer/requirements.txt",
+  "postAttachCommand": "echo \"Kotlin Jupyter is ready. Open examples/*.ipynb with the Kotlin kernel, or run: start-notebook\"",
+  "customizations": {
+    "codespaces": {
+      "openFiles": ["examples/introduction.ipynb"]
+    },
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/home/vscode/venv/bin/python3",
+        "github.copilot.enable": {
+          "*": false
+        },
+        "github.copilot.nextEditSuggestions.enabled": false,
+        "editor.inlineSuggest.enabled": false
+      },
+      "extensions": [
+        "ms-toolsai.jupyter",
+        "ms-python.python",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
+      ]
+    }
+  }
+}
