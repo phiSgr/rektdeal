@@ -1,7 +1,7 @@
 # Codespace for Kotlin Jupyter examples (cf. github/codespaces-jupyter)
 FROM azul-zulu:25-jdk AS zulu25
 
-FROM mcr.microsoft.com/devcontainers/universal:2
+FROM mcr.microsoft.com/devcontainers/universal:5
 
 ARG KOTLIN_LSP_VERSION=262.4739.0
 ARG USERNAME=codespace
