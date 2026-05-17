@@ -23,9 +23,7 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" \
 COPY .devcontainer/requirements.txt /tmp/requirements.txt
 COPY .devcontainer/warm-jupyter-cache.sh /tmp/warm-jupyter-cache.sh
 COPY .devcontainer/warmup.ipynb /tmp/warmup.ipynb
-COPY .devcontainer/start-notebook.sh /usr/local/bin/start-notebook.sh
-
-RUN chmod +x /tmp/warm-jupyter-cache.sh /usr/local/bin/start-notebook.sh
+RUN chmod +x /tmp/warm-jupyter-cache.sh
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
