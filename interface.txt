@@ -1,0 +1,790 @@
+package com.github.phisgr.dds
+
+
+
+class DdsError(val code: Int) : Throwable(errorMessages[code] ?: "unknown code $code")
+
+/**
+ * putting static fields/methods in Java in the top level in Kotlin
+ */
+
+@file:JvmName("-internalReExport")
+
+package com.github.phisgr.dds
+
+val S: Suit = Strain.S
+val H: Suit = Strain.H
+val D: Suit = Strain.D
+val C: Suit = Strain.C
+
+val N: Strain = Strain.N
+
+val SUITS: List<Suit> = Strain.SUITS
+fun Int.toSuit(): Suit
+
+val STRAINS: List<Strain> = Strain.STRAINS
+fun Int.toStrain(): Strain
+
+val NORTH: Direction = Seats.N
+val EAST: Direction = Seats.E
+val SOUTH: Direction = Seats.S
+val WEST: Direction = Seats.W
+
+val DIRECTIONS: List<Direction> = Seats.DIRECTIONS
+fun Int.toDirection(): Direction
+val SEATS: List<Seats> = Seats.SEATS
+fun Int.toSeats(): Seats
+
+package com.github.phisgr.dds
+
+val threadCount: Int
+val singleThreadLock: Lock = allThreadLock.readLock()
+val masterLock: Lock = allThreadLock.writeLock()
+
+// List.of creates an immutable list. Kotlin `listOf` creates a read-only list.
+val locks: List<ReentrantLock> = java.util.List.of(*Array(threadCount) { ReentrantLock() })
+
+inline fun <T> withAllThreads(action: () -> T): T
+
+inline fun <T> withThread(id: Int, action: () -> T): T
+
+package com.github.phisgr.dds
+
+@JvmInline
+value class Rank : Comparable<Rank> {
+
+    class Array(
+        val memory: MemorySegment,
+    ) {
+        @JvmName("get")
+        operator fun get(index: Int): Rank
+
+        @JvmName("set")
+        operator fun set(index: Int, value: Rank)
+
+        fun size(): Int
+
+        fun toString(count: Int): String
+
+        override fun toString(): String
+
+        fun clear()
+    }
+
+    companion object {
+        val strings = (2..14).map { Rank(it).toChar().toString() }
+
+        @JvmStatic
+        @JvmName("fromChar")
+        fun fromChar(c: Char)
+
+        @JvmStatic
+        fun toChar(rank: Int)
+
+        @JvmStatic
+        fun toString(rank: Int)
+
+        val A = Rank(14)
+        val K = Rank(13)
+        val Q = Rank(12)
+        val J = Rank(11)
+        val T = Rank(10)
+    }
+
+    override fun toString(): String
+
+    fun toChar(): Char
+
+    override operator fun compareTo(other: Rank): Int
+}
+
+class CIntArray(val memory: MemorySegment) {
+    operator fun get(index: Int): Int
+    operator fun set(index: Int, value: Int)
+
+    fun size(): Int
+
+    override fun toString(): String
+
+    fun toString(count: Int): String
+}
+
+/**
+ * Wraps around a [MemorySegment] with the layout `char[size][maxLength]`.
+ */
+data class CStringArray(val memory: MemorySegment, val maxLength: Long) {
+    operator fun get(index: Int): String
+    operator fun set(index: Int, value: String)
+
+    fun size(): Int
+    override fun toString(): String
+    fun toString(count: Int): String
+}
+
+/**
+ * Bit vector encoding the cards in one suit.
+ *
+ * E.g. A986 is encoded as `0b100001101000000` (17216).
+ * ```
+ * AKQJT98765432--
+ * 100001101000000
+ * ```
+ */
+@JvmInline
+value class Holding(val encoded: Int) {
+    companion object {
+        @JvmStatic
+        fun withCard(holding: Int, newCard: Int): Int
+
+        @JvmStatic
+        fun toString(holding: Int): String
+
+        @JvmStatic
+        @JvmName("parse")
+        operator fun invoke(s: String): Holding
+
+        @JvmStatic
+        @JvmName("fromRanks")
+        operator fun invoke(vararg ranks: Int): Holding
+    }
+
+    class Array(
+        val memory: MemorySegment,
+    ) {
+        @JvmName("get")
+        operator fun get(index: Int): Holding
+
+        @JvmName("set")
+        operator fun set(index: Int, value: Holding)
+
+        fun size(): Int
+
+        fun toString(count: Int): String
+
+        override fun toString(): String
+    }
+
+    override fun toString(): String
+
+    fun withCard(rank: Rank)
+}
+
+/**
+ * Wrapper around the field `unsigned int cards[DDS_HANDS][DDS_SUITS]`
+ *
+ * Holds 16 [Holding] encoded ints.
+ */
+class Cards(val memory: MemorySegment) {
+
+    @JvmName("get")
+    operator fun get(hand: Direction, suit: Suit): Holding
+
+    @JvmName("set")
+    operator fun set(hand: Direction, suit: Suit, value: Holding)
+
+    override fun toString(): String
+}
+
+class DdTable(val memory: MemorySegment) {
+    companion object {
+
+        val formatString
+    }
+
+    operator fun get(strain: Strain, hand: Direction): Int
+
+    operator fun set(strain: Strain, hand: Direction, tricks: Int)
+
+    override fun toString(): String
+}
+
+enum class Vulnerability {
+    NONE, BOTH, NS, EW;
+
+    val encoded: Int = ordinal
+}
+
+package com.github.phisgr.rektdeal
+
+@JvmInline
+value class Card {
+    constructor(suit: Suit, rank: Rank)
+
+    val suitEncoded: Int
+    val suit: Suit
+    val rankEncoded: Int
+    val rank: Rank
+
+    val hcp: Int
+    val qp: Int
+    val controls: Int
+
+    override fun toString(): String
+}
+
+package com.github.phisgr.rektdeal
+
+
+
+data class ScoredContract(val contract: Contract, val declarer: Seats, val score: Int, val tricks: Int)
+
+data class Contract(val level: Int, val strain: Strain, val doubled: Int) {
+
+    constructor(contract: String)
+
+    fun score(tricks: Int, vulnerable: Boolean): Int
+
+    override fun toString(): String
+
+}
+
+package com.github.phisgr.rektdeal
+
+
+
+class Dealer(preDeals: Map<Direction, PreDeal>? = null) {
+    /**
+     * The parameters can either be a string that will be parsed as [PreDealCards],
+     * or a [PreDeal] value (i.e. [PreDeal] or [PreDealCards].
+     */
+    @Suppress("LocalVariableName")
+    constructor(N: Any? = null, E: Any? = null, S: Any? = null, W: Any? = null)
+
+    /**
+     * The [Deal] object might be reused if [accept] criterion returned `false`.
+     */
+    operator fun invoke(accept: Predicate<Deal> = Predicate { true }): Deal
+
+    operator fun invoke(maxTry: Int, accept: Predicate<Deal> = Predicate { true }): Deal?
+}
+
+package com.github.phisgr.rektdeal
+
+fun interface Evaluator {
+    fun evaluate(holding: RankList): Int
+
+    companion object {
+        val hcp: Evaluator = Evaluator(4, 3, 2, 1)
+        val qp: Evaluator = Evaluator(3, 2, 1)
+        val controls: Evaluator = Evaluator(2, 1)
+
+        operator fun invoke(vararg points: Int): Evaluator
+    }
+}
+
+package com.github.phisgr.rektdeal
+
+
+@JvmInline
+value class HoldingBySuit(val encoded: Long) {
+    companion object {
+        fun parse(s: String): HoldingBySuit
+
+        val WHOLE_DECK: HoldingBySuit = HoldingBySuit(0x7ffc7ffc7ffc7ffc)
+    }
+
+    override fun toString(): String
+
+    fun removeCards(that: HoldingBySuit): HoldingBySuit
+    val size: Int
+
+    inline fun forEachIndexed(
+        startIndex: Int = 0,
+        action: (index: Int, card: Byte) -> Unit,
+    )
+
+    fun withCard(card: Byte): HoldingBySuit
+    fun noOverlap(suit: Int, holding: Int): Boolean
+
+    fun withHolding(suit: Int, holding: Short): HoldingBySuit
+
+    fun getHolding(suit: Suit): Holding
+}
+
+package com.github.phisgr.rektdeal
+
+
+
+/**
+ * Not thread-safe.
+ * With the [multiThread] function, use the `state` parameter to create one.
+ * For an example, see the [openingLead] function.
+ */
+class PayOff<T>(val entries: List<T>, val diff: IntBinaryOperator) {
+    companion object {
+
+        fun calculateImp(scoreDiff: Int): Int
+
+        val matchPoint: IntBinaryOperator
+
+        val impFromScores: IntBinaryOperator
+
+        /**
+         * Calculate the IMPs for the defenders
+         */
+        fun impFromTricks(contract: Contract, vulnerable: Boolean): IntBinaryOperator
+
+        fun <T> convertMapToArray(entries: List<T>, scoreMap: Map<T, Int>): IntArray
+    }
+
+    var count = 0
+        private set
+
+    fun addData(rawScores: IntArray)
+
+    fun addData(rawScores: Map<T, Int>)
+
+    fun combine(that: PayOff<T>): PayOff<T>
+
+    fun calcMeans(): DoubleArray
+    fun calcStdErrs(): DoubleArray
+
+    fun report(output: PrintStream = System.out)
+
+    override fun toString(): String
+
+}
+
+package com.github.phisgr.rektdeal
+
+
+abstract class RankList : AbstractList<Rank>() {
+    abstract override fun get(index: Int): Rank
+    override fun listIterator(): RankListIterator
+
+    /**
+     * Higher order functions like `forEach` cause boxing, as of 1.9.20.
+     * When in doubt, use `for in` loop.
+     */
+    override fun iterator(): RankListIterator
+
+    /**
+     * half-losers - losers scaled by 2 to be an integral value
+     */
+    fun losersX2(): Int
+
+    /**
+     * new losing trick count scaled by 2 to be an integral value
+     */
+    fun newLtcX2(): Int
+
+    /**
+     * playing tricks scaled by 2 to be an integral value
+     * See [SuitHolding.playingTricks]
+     */
+    fun playingTricksX2(): Int
+}
+
+class RankListIterator(private val rankList: RankList) : ListIterator<Rank> {
+    override fun hasNext(): Boolean
+    override fun hasPrevious(): Boolean
+
+    override fun next(): Rank
+
+    override fun nextIndex(): Int
+
+    override fun previous(): Rank
+
+    override fun previousIndex(): Int
+}
+
+package com.github.phisgr.rektdeal
+
+
+
+typealias ShapeFun<T> = (s: Int, h: Int, d: Int, c: Int) -> T
+
+class Shape {
+    companion object {
+
+        operator fun invoke(cond: ShapeFun<Boolean>): Shape
+
+        operator fun invoke(s: String): Shape
+
+        val balanced = Shape("(4333)") + Shape("(4432)") + Shape("(5332)")
+        val semiBalanced = balanced + Shape("(5422)") + Shape("(6322)")
+    }
+
+    val count: Int
+
+    fun contains(s: Int, h: Int, d: Int): Boolean
+
+    /**
+     * Allows the syntax [Hand.shape] `in shape`
+     */
+    operator fun contains(shape: ReadOnlyIntArray): Boolean
+    operator fun contains(shape: List<Int>): Boolean
+    operator fun invoke(hand: Hand): Boolean
+
+    /**
+     * Returns the union of the two sets.
+     */
+    operator fun plus(that: Shape): Shape
+
+    /**
+     * Returns a [Shape] that contains those which are in `this` but not [that].
+     */
+    operator fun minus(that: Shape): Shape
+
+    /**
+     * returns a [Shape] that contains those which are in both `this` and [that]
+     */
+    fun intersect(that: Shape): Shape
+
+    override fun toString(): String
+
+    override fun equals(other: Any?): Boolean
+    override fun hashCode(): Int
+}
+
+package com.github.phisgr.rektdeal
+
+
+
+/**
+ * A [SmartStack] accelerates deal generation via precomputation.
+ * Instead of only filtering from random deals, the rare hand in the deal is directly generated.
+ *
+ * Only one [SmartStack] is allowed per [Dealer] - applying the algorithm twice naively skews probabilities.
+ * However, you *can* still use an `accept` filter alongside a [SmartStack] without issue.
+ *
+ * Generates hands with the given [shape] and [evaluator] sum within [values].
+ *
+ * Thread-safe.
+ */
+class SmartStack(
+    private val shape: Shape,
+    private val evaluator: Evaluator,
+    private val values: Iterable<Int>,
+) : PreDeal() {
+
+}
+
+class PreparedSmartStack {
+
+    operator fun invoke(): HoldingBySuit
+}
+
+
+package com.github.phisgr.rektdeal
+
+
+
+class Deal : AbstractList<Hand>() {
+
+    override val size: Int
+
+    override fun get(index: Int): Hand
+
+    override fun toString(): String
+    fun getHand(direction: Direction): Hand
+
+    val north: Hand
+    val east: Hand
+    val south: Hand
+    val west: Hand
+
+    /**
+     * Load the cards of this deal into the DDS [Cards] object for solving.
+     */
+    fun setCards(ddsCards: Cards)
+
+    /**
+     * Compute defenders' number of double dummy tricks for all leads.
+     *
+     * Cards for which the card immediately above is in the same hand are not
+     * listed; i.e., equivalent leads are only listed once.
+     */
+    fun ddAllTricks(strain: Strain, leader: Direction): Map<Card, Int>
+
+    /**
+     * @return the score of the [contract] when [ddTricks] is won.
+     */
+    fun ddScore(contract: Contract, declarer: Direction, vulnerable: Boolean): Int
+
+    /**
+     * @return number of double dummy tricks the [declarer] makes in [strain]
+     */
+    fun ddTricks(strain: Strain, declarer: Direction): Int
+
+
+    /**
+     * You can provide [cachedResults] when you're invoking [parScore] after
+     * you have already solved the deal for some trump suit and declarer.
+     *
+     * If [multiThreaded], DDS's [calcDdTable], which solves the contracts in parallel, will be used.
+     * It is `multiThreaded` by default unless
+     * other threads are also using the solver (inferred from the presence of [solverResources]) or
+     * there are `cachedResults`, which `calcDdTable` cannot make use of.
+     *
+     * @return A pair, [DdTable] and a list of par score contracts.
+     * The list is empty if there's no making contract.
+     */
+    fun parScore(
+        dealer: Direction,
+        vulnerability: Vulnerability,
+        cachedResults: Map<Pair<Strain, Direction>, Int>? = null,
+        multiThreaded: Boolean? = null,
+    ): Pair<DdTable, List<ScoredContract>>
+
+    @Suppress("LocalVariableName")
+    fun handDiagram(
+        vararg directions: Direction,
+    ): String
+}
+
+class Hand : AbstractList<SuitHolding>() {
+    val spades: SuitHolding
+    val hearts: SuitHolding
+    val diamonds: SuitHolding
+    val clubs: SuitHolding
+    val shape: ReadOnlyIntArray
+
+    /**
+     * Length of the longest suit.
+     */
+    val l1: Int
+    val l2: Int
+    val l3: Int
+
+    /**
+     * Length of the shortest suit.
+     */
+    val l4: Int
+
+    override val size: Int
+    override operator fun get(index: Int): SuitHolding
+    operator fun get(suit: Suit): SuitHolding
+
+    fun getCard(index: Int): Card
+
+    operator fun contains(card: Card): Boolean
+    val hcp: Int
+    val qp: Int
+    val controls: Int
+
+    /**
+     * [Freakness](http://www.rpbridge.net/8j17.htm#7)
+     */
+    val freakness: Int
+
+    /**
+     * Sum of the four [SuitHolding.playingTricks]
+     */
+    val playingTricks: Double
+    val losers: Double
+    val newLtc: Double
+
+    override fun toString(): String
+    fun handDiagram(): String
+}
+
+class SuitHolding : RankList() {
+
+    override val size: Int
+    override operator fun get(index: Int): Rank
+
+    fun getCard(index: Int): Card
+
+    operator fun contains(card: Card): Boolean
+
+    val hcp: Int
+    val qp: Int
+    val controls: Int
+    val losers: Double
+    val newLtc: Double
+
+    /**
+     * [Pavlicek playing tricks](http://www.rpbridge.net/8j17.htm#4).
+     *
+     * Differences:
+     * 1. Stiff K is 0 tricks instead of 0.5 tricks
+     * 2. Kxx is 0.5 tricks instead of 1 trick
+     * 3. Qx is 0 tricks instead of 0.5 tricks
+     */
+    val playingTricks: Double
+
+    override fun toString(): String
+}
+
+package com.github.phisgr.rektdeal
+
+data class Stat(val mean: Double, val stdErr: Double) {
+    override fun toString()
+}
+
+fun <T> PayOff<T>.toDataFrame(): AnyFrame
+
+
+fun <T> PayOff<T>.toFormattedFrame(): FormattedFrame<Any?>
+
+fun OpeningLeadStat.trickFrequencyTable(): AnyFrame
+
+package com.github.phisgr.rektdeal
+
+
+inline fun openingLead(
+    count: Int,
+    hand: PreDealCards,
+    leader: Direction,
+    extraPreDeals: Map<Direction, PreDeal> = emptyMap(),
+    crossinline accept: (Deal) -> Boolean,
+    crossinline progressLog: (Int) -> Unit = { if (it % 1000 == 0) log("$it deals analyzed.") },
+    contract: Contract,
+    scoring: IntBinaryOperator,
+): PayOff<Card>
+
+data class OpeningLeadStat(
+    val impNonVul: PayOff<Card>,
+    val impVul: PayOff<Card>,
+    val mp: PayOff<Card>,
+    // mutated internally
+    val trickFrequencies: Map<Card, ReadOnlyIntArray>,
+) {
+
+    constructor(
+        cards: List<Card>,
+        impNonVulScoring: IntBinaryOperator,
+        impVulScoring: IntBinaryOperator,
+    )
+
+    fun combine(that: OpeningLeadStat): OpeningLeadStat
+
+    fun addData(tricks: Map<Card, Int>)
+
+    fun averageTricks(): Map<Card, Double>
+
+    override fun toString(): String
+}
+
+/**
+ * Run a simulation for the opening lead from [hand] for the opening lead by [leader].
+ *
+ * Calculates the IMPs (vulnerable or not), MPs, and trick counts of each card.
+ */
+inline fun openingLead(
+    count: Int,
+    hand: PreDealCards,
+    leader: Direction,
+    extraPreDeals: Map<Direction, PreDeal> = emptyMap(),
+    crossinline accept: (Deal) -> Boolean,
+    crossinline progressLog: (Int) -> Unit = { if (it % 1000 == 0) log("$it deals analyzed.") },
+    contract: Contract,
+): OpeningLeadStat
+
+/**
+ * Opening lead simulation generic over the [state] accumulated.
+ * Use [reducer] to combine the state from different threads.
+ */
+inline fun <T> openingLead(
+    count: Int,
+    hand: PreDealCards,
+    leader: Direction,
+    extraPreDeals: Map<Direction, PreDeal> = emptyMap(),
+    crossinline state: () -> T,
+    crossinline updateState: (T, Map<Card, Int>) -> Unit,
+    crossinline accept: (Deal) -> Boolean,
+    crossinline progressLog: (Int) -> Unit,
+    contract: Contract,
+    crossinline reducer: (T, T) -> T,
+): T
+
+package com.github.phisgr.rektdeal
+
+
+sealed class PreDeal
+
+/**
+ * PreDealCards used to be PreDealHand.
+ * Previously we did not allow pre-deals to be partially specified.
+ * I.e., it had to be a full hand with 13 cards.
+ * With the constraint dropped, it does not make sense to call them a `hand` anymore.
+ * This function is added for source compatibility.
+ */
+@Suppress("FunctionName")
+fun PreDealHand(s: String)
+
+/**
+ * The input string is the suits separated by spaces.
+ * Voids can be represented with a `-`.
+ * The honours are upper case characters `AKQJT`.
+ */
+class PreDealCards(s: String) : PreDeal() {
+    val holding = HoldingBySuit.parse(s)
+
+    /**
+     * Returns a list of non-equivalent cards.
+     */
+    fun validCards(): List<Card>
+}
+
+package com.github.phisgr.rektdeal
+
+
+class SolverResources(val threadIndex: Int, val arena: Arena) {
+    // Using `LazyThreadSafetyMode.NONE` for DDS wrapper objects because this class is meant to be thread-local.
+
+    val deal: DdsDeal by lazy(LazyThreadSafetyMode.NONE) { DdsDeal(arena) }
+    val futureTricks: FutureTricks by lazy(LazyThreadSafetyMode.NONE) { FutureTricks(arena) }
+    val ddTableResults: DdTableResults by lazy(LazyThreadSafetyMode.NONE) { DdTableResults(arena) }
+    val parResultsMaster: ParResultsMaster by lazy(LazyThreadSafetyMode.NONE) { ParResultsMaster(arena) }
+}
+
+val solverResources = ThreadLocal<SolverResources>()
+
+fun <T> maybeUseResources(action: (DdsDeal, FutureTricks, threadIndex: Int) -> T): T
+
+/**
+ * Prints in the format "HH:mm:ss $[s]"
+ */
+fun log(s: Any?)
+
+/**
+ * Generates [count] deals.
+ * Uses [threadCount] as determined by the DDS library.
+ *
+ * [dealer] is a function as [Dealer] objects are not thread-safe.
+ * One has to be created for each thread.
+ * They can, however, reuse the [SmartStack] objects.
+ *
+ * Be careful to not mutate non-thread-safe objects in the [action],
+ * or in the [accept] criteria - the latter should be pure anyway.
+ *
+ * The dealCount in [action] is 1-based.
+ * You can log the progress by writing
+ * ```
+ * if (dealCount % 1000 == 0) {
+ *     log("$dealCount analyzed")
+ * }
+ * ```
+ */
+inline fun <T> multiThread(
+    count: Int,
+    crossinline dealer: () -> Dealer = { Dealer() },
+    crossinline state: () -> T,
+    crossinline accept: (Deal) -> Boolean = { true },
+    crossinline action: (dealCount: Int, Deal, state: T) -> Unit,
+): List<T>
+
+/**
+ * An overload without the `state` param.
+ *
+ * You can
+ * - close over your (thread-safe) state objects in your [action], or
+ * - access some unshared object with `stateObjects[`[solverResources]`.get().threadIndex]`.
+ */
+inline fun multiThread(
+    count: Int,
+    crossinline dealer: () -> Dealer = { Dealer() },
+    crossinline accept: (Deal) -> Boolean = { true },
+    crossinline action: (dealCount: Int, Deal) -> Unit,
+)
+
+inline fun <T> launchThreadsWithResources(
+    threadCount: Int,
+    // idk, maybe you have 96 threads and want each task to only take 8 threads
+    // then you say useResourcesMultiThreaded(threadCount * 8, offset = 8 * i) { ...
+    offset: Int = 0,
+    crossinline action: () -> T,
+): List<T>
+
